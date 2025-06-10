@@ -8,6 +8,7 @@ if(!require(arsenal)) install.packages("arsenal") ;library(arsenal)
 if(!require(RColorBrewer)) install.packages("RColorBrewer") ;library(RColorBrewer)
 if(!require(reshape2)) install.packages("reshape2") ;library(reshape2)
 if(!require(ggpubr)) install.packages("ggpubr") ;library(ggpubr)
+if(!require(car)) install.packages("car"); data(car, package = "car")
 if(!require(tidyverse)) install.packages("tidyverse") ;library(tidyverse)
 if(!require(ggprism)) install.packages("ggprism") ;library(ggprism)
 if(!require(scales)) install.packages("scales") ;library(scales)
@@ -41,7 +42,7 @@ base_size <- 70
 axis_text_rel_size = -1 
 title_text_rel_size = +2
 colours3<-c("#FFFFFF","grey42","#d16014","#00798C")
-date<-"230525_v2"
+date<-"100625"
 setwd("D:/PhD/AGBRESA_LC_ME_CFS/Physical_inactivity_paper/")
 output_folder<-(paste("Physical_inactivity_graphs",date,sep="/"))
 dir.create(file.path(output_folder), showWarnings = FALSE)
@@ -294,19 +295,28 @@ colnames(cor_pvals)<-c("p_value","r","Session","Group","p_value.signif","compari
 
 
 # Check normality ---------------------------------------------------------
-# 
-# op<-par(mfrow=c(1,5), mar=c(2,2,2,2))
-# sessions<-unique(data$Session)
-# for (i in 4:length(colnames(data)) ){
-#   parameter<-colnames(data[i])
-#   for (j in 1:length(sessions)){
-#     session<-sessions[j]
-#     tmp<- data[data$Session==session,parameter]
-#     qqnorm(tmp,xlab=parameter, main=paste(session,parameter,sep="_"))
-#     qqline(tmp)
-#     
-#   }
-# }
+
+op<-par(mfrow=c(1,5), mar=c(2,2,2,2))
+sessions<-unique(data$Session)
+
+for (i in 5:length(colnames(data)) ){
+  
+  
+  parameter<-colnames(data[i])
+  for (j in 1:length(sessions)){
+    try( {session<-sessions[j]
+         tmp<- data[data$Session==session,parameter]
+         qqnorm(tmp,xlab=parameter, main=paste(session,parameter,sep="_"))
+         qqline(tmp)
+         recordPlot()
+         
+         }, silent=T)}
+   
+
+  
+  
+}
+
 
 norm_pvals<-normality_test(data)
 resid_norm_pvals<-normality_test_resid(data)
@@ -564,11 +574,11 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 # qqnorm(test2[test2$Session=="BDC","GET"]);qqline(test2[test2$Session=="BDC","GET"])
 # qqnorm(test2[test2$Session=="HDT55","GET"]);qqline(test2[test2$Session=="HDT55","GET"])
 # qqnorm(test2[test2$Session=="CON","GET"]);qqline(test2[test2$Session=="CON","GET"])
-# qqnorm(test2[test2$Session=="LC","GET"]);qqline(test2[test2$Session=="LC","GET"]) 
+# qqnorm(test2[test2$Session=="LC","GET"]);qqline(test2[test2$Session=="LC","GET"])
 # qqnorm(test2[test2$Session=="ME","GET"]);qqline(test2[test2$Session=="ME","GET"])
 
 model <-lme(GET~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","GET"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -705,7 +715,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","VE_max"]);qqline(test2[test2$Session=="ME","VE_max"])
 
 model <-lme(VE_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","VE_max"]<-a$`Pr(>Chisq)`
 
 
@@ -832,7 +842,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","EqCO2_max"]);qqline(test2[test2$Session=="ME","EqCO2_max"])
 
 model <-lme(EqCO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","EqCO2_max"]<-a$`Pr(>Chisq)`
       
 b<-
@@ -972,7 +982,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","FCSA"]);qqline(test2[test2$Session=="ME","FCSA"])
 
 model <-lme(FCSA~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -1105,7 +1115,7 @@ test2<-test[!test$Subject %in% remove ,]
 
 model <-lme(SDH~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 
 all_pvals["ANOVA","SDH"]<-a$`Pr(>Chisq)`
 # post-hoc testing
@@ -1256,7 +1266,6 @@ all_pvals["ANOVA","Oxphos"]<-a$p.value
 a<-pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","Oxphos"], test2[test2$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
 
 
-#paired t test AGBRESA p=2.67e-11
 b<-
   t_test(test2[test2$Group=="BED REST",], Oxphos~Session, paired=TRUE)
 
@@ -1375,8 +1384,6 @@ remove<-data[is.na(data$SDH)==TRUE | is.na(data$VO2_rel)==TRUE  ,"Subject"]
 plot_data<-data[!data$Subject %in% remove, ]
 
 
-# duplicate these ---------------------------------------------------------
-
 # df<-list(plot_data[plot_data$Session=="BDC",],plot_data[plot_data$Session=="HDT55",])
 # cocor(~VO2_rel+SDH| VO2_rel  + SDH, df )
 # 
@@ -1390,9 +1397,9 @@ plot_data<-data[!data$Subject %in% remove, ]
 # cocor(~VO2_rel+SDH| VO2_rel  + SDH, df )
 
 model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="BED REST",])
-Anova(model)
+car::Anova(model)
 model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
-Anova(model)
+car::Anova(model)
 
 
 y<-plot_data$VO2_rel
@@ -1523,9 +1530,9 @@ remove<-data[is.na(data$Oxphos)==TRUE | is.na(data$VO2_rel)==TRUE | data$membran
 plot_data<-data[!data$Subject %in% remove, ]
 
 model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="BED REST",])
-Anova(model)
+car::Anova(model)
 model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
-Anova(model)
+car::Anova(model)
 
 
 # df<-list(plot_data[plot_data$Session=="BDC",],plot_data[plot_data$Session=="HDT55",])
@@ -1689,7 +1696,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","CF"]);qqline(test2[test2$Session=="ME","CF"])
 
 model <-lme(CF~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","CF"]<-a$`Pr(>Chisq)`
 
 # post-hoc testing
@@ -1757,9 +1764,6 @@ CF_a<-
         axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
   )+
   guides(y=guide_axis(cap="upper"))
-
-# CF_a
-
 
 ggsave(plot=CF_a,
        filename = paste(output_folder,"/CF_a_",date,".png", sep = ""),
@@ -1833,7 +1837,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","CD"]);qqline(test2[test2$Session=="ME","CD"])
 
 model <-lme(CD~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","CD"]<-a$`Pr(>Chisq)`
 
 # post-hoc testing
@@ -2225,7 +2229,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="CON","GET"]);qqline(BC_test2[BC_test2$Session=="CON","GET"]) 
 
 model<-lme(GET~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-anova(model)
+car::Anova(model)
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","GET"], BC_test2[BC_test2$Session=="BDC","GET"], paired=FALSE)
 
@@ -2286,7 +2290,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="CON","GET_perc"]);qqline(BC_test2[BC_test2$Session=="CON","GET_perc"]) 
 
 model<-lme(GET_perc~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-anova(model)
+car::Anova(model)
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","GET_perc"], BC_test2[BC_test2$Session=="BDC","GET_perc"], paired=FALSE)
 
@@ -2413,7 +2417,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="CON","Oxphos"]);qqline(BC_test2[BC_test2$Session=="CON","Oxphos"]) 
 
 model<-lme(Oxphos~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-anova(model)
+car::Anova(model)
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","Oxphos"], BC_test2[BC_test2$Session=="BDC","Oxphos"], paired=FALSE)
 
@@ -2472,7 +2476,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="CON","CF"]);qqline(BC_test2[BC_test2$Session=="CON","CF"]) 
 
 model<-lme(CF~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-anova(model)
+car::Anova(model)
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","CF"], BC_test2[BC_test2$Session=="BDC","CF"], paired=FALSE)
 
@@ -3120,7 +3124,7 @@ test2<-test[!test$Subject %in% remove ,]
 
 
 model <-lme(EqO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","EqO2_max"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -3258,7 +3262,7 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
 model <-lme(VE_VCO2_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","VE_VCO2_slope"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -3382,7 +3386,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","O2_pulse"]);qqline(test2[test2$Session=="ME","O2_pulse"])
 
 model <-lme(O2_pulse~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","O2_pulse"]<-a$`Pr(>Chisq)`
 
 # post-hoc testing 
@@ -3493,7 +3497,6 @@ O2_pulse_b<-
   )+
   guides(y=guide_axis(cap="upper"))
 
-O2_pulse_b
 
 ggsave(plot=O2_pulse_b,
        filename = paste(output_folder,"/O2_pulse_b_",date,".png", sep = ""),
@@ -3519,7 +3522,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","HR_max"]);qqline(test2[test2$Session=="ME","HR_max"])
 
 model <-lme(HR_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","HR_max"]<-a$`Pr(>Chisq)`
 
 
@@ -3792,7 +3795,7 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
 model <-lme(VO2_HR_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","VO2_HR_slope"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -3930,7 +3933,7 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
 model <-lme(VE_VCO2_slope_submax~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","VE_VCO2_slope_submax"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -4065,7 +4068,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","HR_rest"]);qqline(test2[test2$Session=="ME","HR_rest"])
 
 model <-lme(HR_rest~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","HR_rest"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -5169,8 +5172,8 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 # qqnorm(HLM_test2[HLM_test2$Session=="ME","GET"]);qqline(HLM_test2[HLM_test2$Session=="ME","GET"])
 
 model<-lme(GET~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-anova(model)
-HLM_pvals["ANOVA","GET"]<-a$`p-value`[2]
+a<-car::Anova(model)
+HLM_pvals["ANOVA","GET"]<-a$`Pr(>Chisq)`
 
 a<-
   HLM_test2 %>% tukey_hsd(GET~Session)
@@ -5326,8 +5329,8 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 
 model<-lme(SDH~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-anova(model)
-HLM_pvals["ANOVA","SDH"]<-a$`p-value`[2]
+a<-car::Anova(model)
+HLM_pvals["ANOVA","SDH"]<-a$`Pr(>Chisq)`
 a<-
   HLM_test2 %>% tukey_hsd(SDH~Session)
 HLM_pvals["HDT55-ME","SDH"]<-a$p.adj[2]
@@ -5474,8 +5477,8 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 
 
 model<-lme(CF~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-anova(model)
-HLM_pvals["ANOVA","CF"]<-a$`p-value`[2]
+a<-car::Anova(model)
+HLM_pvals["ANOVA","CF"]<-a$`Pr(>Chisq)`
 
 a<-
   HLM_test2 %>% tukey_hsd(CF~Session)
@@ -5949,7 +5952,7 @@ test_norm<-normality_test(test)
 
 model <-lme(Percent_I~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","Percent_I"]<-a$`Pr(>Chisq)`
 
 a<-
@@ -5976,7 +5979,7 @@ all_pvals["POST_VIRAL_test","Percent_I"]<-"anova_tukey_post_hoc"
 
 model <-lme(Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","Percent_I_IIa"]<-a$`Pr(>Chisq)`
 b<-
   t_test(test[test$Group=="BED REST",], Percent_I_IIa~Session, paired=TRUE)
@@ -6000,7 +6003,7 @@ all_pvals["POST_VIRAL_test","Percent_I_IIa"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIa"]);qqline(test[test$Session=="ME","Percent_IIa"])
 
 model <-lme(Percent_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","Percent_IIa"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6025,7 +6028,7 @@ all_pvals["POST_VIRAL_test","Percent_IIa"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIa_IIx"]);qqline(test[test$Session=="ME","Percent_IIa_IIx"])
 
 model <-lme(Percent_IIa_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","Percent_IIa_IIx"]<-a$`Pr(>Chisq)`
 a<-
   test[test$Group=="POST-VIRAL",] %>% tukey_hsd(Percent_IIa_IIx~Session)
@@ -6050,7 +6053,7 @@ all_pvals["POST_VIRAL_test","Percent_IIa_IIx"]<-"anova_tukey_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIx"]);qqline(test[test$Session=="ME","Percent_IIx"])
 
 model <-lme(Percent_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","Percent_IIx"]<-a$`Pr(>Chisq)`
 b<-
   t_test(test[test$Group=="BED REST",], Percent_IIx~Session, paired=TRUE)
@@ -6318,7 +6321,7 @@ test2<-test[!test$Subject %in% remove,]
 
 model <-lme(TypeI_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","TypeI_FCSA"]<-a$`Pr(>Chisq)`
 # post-hoc testing    
 a<-
@@ -6346,7 +6349,7 @@ all_pvals["POST_VIRAL_test","TypeI_FCSA"]<-"anova_tukey_post_hoc"
 
 model <-lme(TypeI_IIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","TypeI_IIa_FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6370,7 +6373,7 @@ all_pvals["POST_VIRAL_test","TypeI_IIa_FCSA"]<-"anova_no_post_hoc"
 
 model <-lme(TypeIIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","TypeIIa_FCSA"]<-a$`Pr(>Chisq)`
 b<-
   t_test(test[test$Group=="BED REST",], TypeIIa_FCSA~Session, paired=TRUE)
@@ -6393,7 +6396,7 @@ all_pvals["POST_VIRAL_test","TypeIIa_FCSA"]<-"anova_no_post_hoc"
 
 model <-lme(Type_IIa_IIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","Type_IIa_IIx_FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6418,7 +6421,7 @@ all_pvals["POST_VIRAL_test","Type_IIa_IIx_FCSA"]<-"anova_no_post_hoc"
 
 model <-lme(TypeIIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-Anova(model)
+a<-car::Anova(model)
 all_pvals["ANOVA","TypeIIx_FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6600,4 +6603,3 @@ write.csv(cor_pvals, file =paste(output_folder,"/cor_pvals_",date,".csv", sep = 
 write.csv(HLM_pvals, file =paste(output_folder,"/HLM_pvals_",date,".csv", sep = "") )
 write.csv(BC_pvals, file =paste(output_folder,"/BC_pvals_",date,".csv", sep = "") )
 write.csv(test_norm, file =paste(output_folder,"/test_norm_",date,".csv", sep = "") )
-
