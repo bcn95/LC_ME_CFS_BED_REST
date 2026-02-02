@@ -8,7 +8,6 @@ if(!require(arsenal)) install.packages("arsenal") ;library(arsenal)
 if(!require(RColorBrewer)) install.packages("RColorBrewer") ;library(RColorBrewer)
 if(!require(reshape2)) install.packages("reshape2") ;library(reshape2)
 if(!require(ggpubr)) install.packages("ggpubr") ;library(ggpubr)
-if(!require(car)) install.packages("car"); data(car, package = "car")
 if(!require(tidyverse)) install.packages("tidyverse") ;library(tidyverse)
 if(!require(ggprism)) install.packages("ggprism") ;library(ggprism)
 if(!require(scales)) install.packages("scales") ;library(scales)
@@ -34,6 +33,7 @@ if(!require(multcomp)) install.packages("multcomp"); library(multcomp)
 if(!require(plotrix)) install.packages("plotrix") ;library(plotrix)
 if(!require(gg.gap)) install.packages("gg.gap"); library(gg.gap)
 if(!require(gapminder)) install.packages("gapminder"); data(gapminder, package = "gapminder")
+if(!require(ARTool)) install.packages("ARTool"); data(gapminder, package = "ARTool")
 devtools::install_github("sysilviakim/Kmisc")
 windowsFonts("Arial" = windowsFont("Arial"))
 windowsFonts("Times New Roman" = windowsFont("TT Times New Roman"))
@@ -42,10 +42,12 @@ base_size <- 70
 axis_text_rel_size = -1 
 title_text_rel_size = +2
 colours3<-c("#FFFFFF","grey42","#d16014","#00798C")
-date<-"100625"
-setwd("D:/PhD/AGBRESA_LC_ME_CFS/Physical_inactivity_paper/")
+date<-"020226"
+setwd("D:/PhD/AGBRESA_LC_ME_CFS/Physical_inactivity_paper/Nat_comm_test/")
 output_folder<-(paste("Physical_inactivity_graphs",date,sep="/"))
 dir.create(file.path(output_folder), showWarnings = FALSE)
+
+
 
 
 # box_cox_transform -------------------------------------------------------
@@ -267,7 +269,8 @@ normality_test_resid<-function (input){
 }
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_230525.xlsx", sheet="Sheet2"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
+
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -285,6 +288,28 @@ data$Leak_norm<-data$Leak/data$SDH
 data$membrane_intact<-data$N_linked/data$ADP
 data$Percent_IIa_IIx_IIx<-data$Percent_IIa_IIx+data$Percent_IIx
 
+data$GET_rel<-(data$GET/data$Weight)*1000
+data$GET_perc<-data$GET_rel/data$VO2_rel
+
+# FRIEND VO2 prediction eqn (per: doi: 10.1016/j.pcad.2017.03.00)-----------------------------------------------
+
+data$Weight_lbs<-data$Weight*2.2
+data$gender<-ifelse(data$Sex=="Female",1,0)
+
+data$VO2_pred<-79.9-(0.39*data$Age)-(13.7*data$gender)-(0.127*data$Weight_lbs)
+
+data$VO2_perc_pred<-data$VO2_rel/data$VO2_pred
+
+data$GET_rel_perc_pred<-data$GET_rel/data$VO2_pred
+
+# Wasserman predicted VO2 -------------------------------------------------
+
+
+data$VO2_perc_pred_wasserman<-ifelse(data$Sex=="Female",(data$VO2_abs*1000)/((data$Weight + 43) * (22.78 - (0.17*data$Age))),
+                                     (data$VO2_abs*1000)/(data$Weight * (50.72 -(0.372* data$Age))))
+
+
+
 all_pvals<-as.data.frame(matrix(ncol=length(colnames(data)), nrow=7))
 
 colnames(all_pvals)<-colnames(data)
@@ -295,28 +320,19 @@ colnames(cor_pvals)<-c("p_value","r","Session","Group","p_value.signif","compari
 
 
 # Check normality ---------------------------------------------------------
-
-op<-par(mfrow=c(1,5), mar=c(2,2,2,2))
-sessions<-unique(data$Session)
-
-for (i in 5:length(colnames(data)) ){
-  
-  
-  parameter<-colnames(data[i])
-  for (j in 1:length(sessions)){
-    try( {session<-sessions[j]
-         tmp<- data[data$Session==session,parameter]
-         qqnorm(tmp,xlab=parameter, main=paste(session,parameter,sep="_"))
-         qqline(tmp)
-         recordPlot()
-         
-         }, silent=T)}
-   
-
-  
-  
-}
-
+# 
+# op<-par(mfrow=c(1,5), mar=c(2,2,2,2))
+# sessions<-unique(data$Session)
+# for (i in 4:length(colnames(data)) ){
+#   parameter<-colnames(data[i])
+#   for (j in 1:length(sessions)){
+#     session<-sessions[j]
+#     tmp<- data[data$Session==session,parameter]
+#     qqnorm(tmp,xlab=parameter, main=paste(session,parameter,sep="_"))
+#     qqline(tmp)
+#     
+#   }
+# }
 
 norm_pvals<-normality_test(data)
 resid_norm_pvals<-normality_test_resid(data)
@@ -390,11 +406,11 @@ pairwise.wilcox.test(test2$Steps, test2$Session, p.adjust.method="BH")
 remove<-test[is.na(test$Sx_duration)==TRUE,"Subject"]
 test2<-test[!test$Subject %in% remove, ]
 
-qqnorm(data[data$Session=="LC","Sx_duration"]);qqline(data[data$Session=="LC","Sx_duration"]) #non normal
-qqnorm(data[data$Session=="ME","Sx_duration"]);qqline(data[data$Session=="ME","Sx_duration"]) #non normal
-
-qqnorm(test2[test2$Session=="LC","Sx_duration"]);qqline(test2[test2$Session=="LC","Sx_duration"]) #non normal
-qqnorm(test2[test2$Session=="ME","Sx_duration"]);qqline(test2[test2$Session=="ME","Sx_duration"]) #normal
+# qqnorm(data[data$Session=="LC","Sx_duration"]);qqline(data[data$Session=="LC","Sx_duration"]) #non normal
+# qqnorm(data[data$Session=="ME","Sx_duration"]);qqline(data[data$Session=="ME","Sx_duration"]) #non normal
+# 
+# qqnorm(test2[test2$Session=="LC","Sx_duration"]);qqline(test2[test2$Session=="LC","Sx_duration"]) #non normal
+# qqnorm(test2[test2$Session=="ME","Sx_duration"]);qqline(test2[test2$Session=="ME","Sx_duration"]) #normal
 
 wilcox.test(test2[test2$Session=="LC","Sx_duration"],test2[test2$Session=="ME","Sx_duration"],paired=FALSE )
 
@@ -406,135 +422,124 @@ wilcox.test(test2[test2$Session=="LC","Sx_duration"],test2[test2$Session=="ME","
 
 # Stats -------------------------------------------------------------------
 
-mean(data[data$Session=="BDC","VO2_abs"],na.rm=TRUE); sd(data[data$Session=="BDC","VO2_abs"],na.rm=TRUE)
-mean(data[data$Session=="HDT55","VO2_abs"],na.rm=TRUE);sd(data[data$Session=="HDT55","VO2_abs"],na.rm=TRUE)
-mean(data[data$Session=="CON","VO2_abs"],na.rm=TRUE);sd(data[data$Session=="CON","VO2_abs"],na.rm=TRUE)
-mean(data[data$Session=="LC","VO2_abs"],na.rm=TRUE);sd(data[data$Session=="LC","VO2_abs"],na.rm=TRUE)
-mean(data[data$Session=="ME","VO2_abs"],na.rm=TRUE);sd(data[data$Session=="ME","VO2_abs"],na.rm=TRUE)
+mean(data[data$Session=="BDC","VO2_rel"],na.rm=TRUE); sd(data[data$Session=="BDC","VO2_rel"],na.rm=TRUE)
+mean(data[data$Session=="HDT55","VO2_rel"],na.rm=TRUE);sd(data[data$Session=="HDT55","VO2_rel"],na.rm=TRUE)
+mean(data[data$Session=="CON","VO2_rel"],na.rm=TRUE);sd(data[data$Session=="CON","VO2_rel"],na.rm=TRUE)
+mean(data[data$Session=="LC","VO2_rel"],na.rm=TRUE);sd(data[data$Session=="LC","VO2_rel"],na.rm=TRUE)
+mean(data[data$Session=="ME","VO2_rel"],na.rm=TRUE);sd(data[data$Session=="ME","VO2_rel"],na.rm=TRUE)
 
 
-remove<-data[is.na(data$VO2_abs)==TRUE,"Subject"]
+remove<-data[is.na(data$VO2_rel)==TRUE,"Subject"]
 test2<-test[!test$Subject %in% remove ,]
 
-# qqnorm(test2[test2$Session=="BDC","VO2_abs"]);qqline(test2[test2$Session=="BDC","VO2_abs"]) 
-# qqnorm(test2[test2$Session=="HDT55","VO2_abs"]);qqline(test2[test2$Session=="HDT55","VO2_abs"]) 
-# qqnorm(test2[test2$Session=="CON","VO2_abs"]);qqline(test2[test2$Session=="CON","VO2_abs"]) 
-# qqnorm(test2[test2$Session=="LC","VO2_abs"]);qqline(test2[test2$Session=="LC","VO2_abs"]) 
-# qqnorm(test2[test2$Session=="ME","VO2_abs"]);qqline(test2[test2$Session=="ME","VO2_abs"]) 
+# qqnorm(test2[test2$Session=="BDC","VO2_rel"]);qqline(test2[test2$Session=="BDC","VO2_rel"])
+# qqnorm(test2[test2$Session=="HDT55","VO2_rel"]);qqline(test2[test2$Session=="HDT55","VO2_rel"])
+# qqnorm(test2[test2$Session=="CON","VO2_rel"]);qqline(test2[test2$Session=="CON","VO2_rel"])
+# qqnorm(test2[test2$Session=="LC","VO2_rel"]);qqline(test2[test2$Session=="LC","VO2_rel"])
+# qqnorm(test2[test2$Session=="ME","VO2_rel"]);qqline(test2[test2$Session=="ME","VO2_rel"])
 
 
-a<-kruskal.test(VO2_abs~Session, test2[test2$Group=="POST-VIRAL",])
-all_pvals["ANOVA","VO2_abs"]<-a$p.value
+a<-kruskal.test(VO2_rel~Session, test2[test2$Group=="POST-VIRAL",])
+all_pvals["ANOVA","VO2_rel"]<-a$p.value
 
-a<-pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","VO2_abs"], test2[test2$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
+a<-pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","VO2_rel"], test2[test2$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
 
 b<-
-  wilcox.test(test2[test2$Session=="BDC","VO2_abs"], test2[test2$Session=="HDT55","VO2_abs"],paired=TRUE)
+  wilcox.test(test2[test2$Session=="BDC","VO2_rel"], test2[test2$Session=="HDT55","VO2_rel"],paired=TRUE)
 
-all_pvals["BDC-HDT55","VO2_abs"]<-b$p.value
-all_pvals["CON-ME","VO2_abs"]<-a$p.value[2]
-all_pvals["CON-LC","VO2_abs"]<-a$p.value[1]
-all_pvals["LC-ME","VO2_abs"]<-a$p.value[4]
-all_pvals["BED_REST_test","VO2_abs"]<-"wilcoxon"
-all_pvals["POST_VIRAL_test","VO2_abs"]<-"kruskal_wilcoxon_post_hoc"
+
+all_pvals["BDC-HDT55","VO2_rel"]<-b$p.value
+all_pvals["CON-ME","VO2_rel"]<-a$p.value[2]
+all_pvals["CON-LC","VO2_rel"]<-a$p.value[1]
+all_pvals["LC-ME","VO2_rel"]<-a$p.value[4]
+all_pvals["BED_REST_test","VO2_rel"]<-"wilcoxon"
+all_pvals["POST_VIRAL_test","VO2_rel"]<-"kruskal_wilcoxon_post_hoc"
 
 
 # Make graph --------------------------------------------------------------
+
 
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
   "CON","ME","p<0.001","POST-VIRAL",
-  "CON","LC",paste(format(round(a$p.value[1],3), drop0trailing=F)),"POST-VIRAL",
+  "CON","LC","p<0.001","POST-VIRAL",
   "LC","ME",paste(format(round(a$p.value[4],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
 
-VO2_abs_a<-
+VO2_rel_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
          aes(
            x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
-           y=VO2_abs, group=Session,fill=Session))+
+           y=VO2_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("V\U0307" ~O[2]*"max (L"~min^-1*")"))+
-  theme(legend.position = "none",
-        # aspect.ratio = 3/1,
-        axis.line=element_line(colour="black", size = line_size/2),
-        axis.ticks = element_line(colour="black", size = line_size),
-        axis.ticks.x =element_blank(),
-        text=element_text(size=base_size+4, family = "Arial"),
-        panel.background  = element_rect(fill="white", colour = "white"),
-        panel.grid.major = element_blank(),
-        panel.grid.major.x = element_blank(),
-        plot.title = element_text(
-          
-          size = rel((title_text_rel_size + base_size) / base_size),
-          hjust = 0.5
-        ),
-        axis.title = element_text(size = rel((title_text_rel_size + base_size+4) / base_size)), 
-        axis.title.y = element_text(angle = 90, vjust = 1.5), # for atop functions export as 9.5x14in
-        axis.title.x = element_blank(),
-        axis.text.y = element_text( size =rel((base_size+axis_text_rel_size)/base_size)),
-        axis.text.x = element_text( size =rel((base_size+axis_text_rel_size-4)/base_size)),
-        strip.background = element_blank(),
-        strip.text = element_blank())+
-  scale_y_continuous(limits=c(0,5), breaks=seq(0,4,1),expand=c(0,0))+
+  ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
+    scale_y_continuous(limits=c(0,65), breaks=c(0,20,30,40,50,60),expand=c(0,0))+
+    scale_y_cut(breaks=c(10),
+                space=c(0.5),
+                scales=c(30),
+                which=c(1),
+                expand = expansion(mult = c(0.02,0.05)) )+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(4), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(55), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
-  theme(legend.position = "none",
-        axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
-        axis.ticks = element_blank(),
-        axis.ticks.x =element_blank(),
-        text=element_text(size=base_size, family = "Arial"),
-        panel.background  = element_rect(fill="white", colour = "white"),
-        panel.grid.major = element_blank(),
-        panel.grid.major.x = element_blank(),
-        plot.title = element_text(
-          size = rel((title_text_rel_size + base_size) / base_size),
-          hjust = 0.5
-        ),
-        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
-        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 30, b = 0, l = 0)), # for atop functions export as 9.5x14in
-        axis.title.x = element_blank(),
-        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
-        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
-  )+
+    theme(legend.position = "none",
+          axis.line=element_line(colour="black", size = line_size),
+          axis.ticks = element_blank(),
+          axis.ticks.x =element_blank(),
+          text=element_text(size=base_size, family = "Arial"),
+          panel.background  = element_rect(fill="white", colour = "white"),
+          panel.grid.major = element_blank(),
+          panel.grid.major.x = element_blank(),
+          plot.title = element_text(
+            size = rel((title_text_rel_size + base_size) / base_size),
+            hjust = 0.5
+          ),
+          axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+          axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+          axis.title.x = element_blank(),
+          axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+          axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+    )+
   guides(y=guide_axis(cap="upper"))
 
 
-ggsave(plot=VO2_abs_a,
-       filename = paste(output_folder,"/VO2_abs_a_",date,".png", sep = ""),
+ggsave(plot=VO2_rel_a,
+       filename = paste(output_folder,"/VO2_rel_a_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
 
-VO2_abs_b<-
+VO2_rel_b<-
   ggplot(plot_data[plot_data$Group=="POST-VIRAL",], 
          aes(
            x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
-           y=VO2_abs, group=Session,fill=Session))+
+           y=VO2_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("V\U0307" ~O[2]*"max (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,5), breaks=seq(0,4,1),expand=c(0,0))+
+  ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
+  scale_y_continuous(limits=c(0,65), breaks=c(0,20,30,40,50,60),expand=c(0,0))+
+    scale_y_cut(breaks=c(10),
+                space=c(0.5),
+                scales=c(30),
+                which=c(1),
+                expand = expansion(mult = c(0.02,0.05)) )+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(4.75), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(60), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
-  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(4.25), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(55), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
-  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(3.75), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(45), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
         axis.ticks.x =element_blank(),
         text=element_text(size=base_size, family = "Arial"),
@@ -554,47 +559,43 @@ VO2_abs_b<-
   guides(y=guide_axis(cap="upper"))
 
 
-ggsave(plot=VO2_abs_b,
-       filename = paste(output_folder,"/VO2_abs_b_",date,".png", sep = ""),
+ggsave(plot=VO2_rel_b,
+       filename = paste(output_folder,"/VO2_rel_b_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
 
 # gas exchange threshold --------------------------------------------------
 # Stats -------------------------------------------------------------------
 
-mean(data[data$Session=="BDC","GET"],na.rm=TRUE); sd(data[data$Session=="BDC","GET"],na.rm=TRUE)
-mean(data[data$Session=="HDT55","GET"],na.rm=TRUE);sd(data[data$Session=="HDT55","GET"],na.rm=TRUE)
-mean(data[data$Session=="CON","GET"],na.rm=TRUE);sd(data[data$Session=="CON","GET"],na.rm=TRUE)
-mean(data[data$Session=="LC","GET"],na.rm=TRUE);sd(data[data$Session=="LC","GET"],na.rm=TRUE)
-mean(data[data$Session=="ME","GET"],na.rm=TRUE);sd(data[data$Session=="ME","GET"],na.rm=TRUE)
+mean(data[data$Session=="BDC","GET_rel"],na.rm=TRUE); sd(data[data$Session=="BDC","GET_rel"],na.rm=TRUE)
+mean(data[data$Session=="HDT55","GET_rel"],na.rm=TRUE);sd(data[data$Session=="HDT55","GET_rel"],na.rm=TRUE)
+mean(data[data$Session=="CON","GET_rel"],na.rm=TRUE);sd(data[data$Session=="CON","GET_rel"],na.rm=TRUE)
+mean(data[data$Session=="LC","GET_rel"],na.rm=TRUE);sd(data[data$Session=="LC","GET_rel"],na.rm=TRUE)
+mean(data[data$Session=="ME","GET_rel"],na.rm=TRUE);sd(data[data$Session=="ME","GET_rel"],na.rm=TRUE)
 
-remove<-data[is.na(data$GET)==TRUE,"Subject"]
+remove<-data[is.na(data$GET_rel)==TRUE,"Subject"]
 remove2<-c("P110117","P110118","P110127")
 test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
-# qqnorm(test2[test2$Session=="BDC","GET"]);qqline(test2[test2$Session=="BDC","GET"])
-# qqnorm(test2[test2$Session=="HDT55","GET"]);qqline(test2[test2$Session=="HDT55","GET"])
-# qqnorm(test2[test2$Session=="CON","GET"]);qqline(test2[test2$Session=="CON","GET"])
-# qqnorm(test2[test2$Session=="LC","GET"]);qqline(test2[test2$Session=="LC","GET"])
-# qqnorm(test2[test2$Session=="ME","GET"]);qqline(test2[test2$Session=="ME","GET"])
+# qqnorm(test2[test2$Session=="BDC","GET_rel"]);qqline(test2[test2$Session=="BDC","GET_rel"])
+# qqnorm(test2[test2$Session=="HDT55","GET_rel"]);qqline(test2[test2$Session=="HDT55","GET_rel"])
+# qqnorm(test2[test2$Session=="CON","GET_rel"]);qqline(test2[test2$Session=="CON","GET_rel"])
+# qqnorm(test2[test2$Session=="LC","GET_rel"]);qqline(test2[test2$Session=="LC","GET_rel"])
+# qqnorm(test2[test2$Session=="ME","GET_rel"]);qqline(test2[test2$Session=="ME","GET_rel"])
 
-model <-lme(GET~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
-all_pvals["ANOVA","GET"]<-a$`Pr(>Chisq)`
-# post-hoc testing 
-a<-
-  test2[test2$Group=="POST-VIRAL",] %>% tukey_hsd(GET~Session)
-        
+a<-kruskal.test(GET_rel~Session, test2[test2$Group=="POST-VIRAL",])
+all_pvals["ANOVA","GET_rel"]<-a$p.value
+
+a<-pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","GET_rel"], test2[test2$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
 
 b<-
-  t_test(test2[test2$Group=="BED REST",], GET~Session, paired=TRUE)
-b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
+  wilcox.test(test2[test2$Session=="BDC","GET_rel"], test2[test2$Session=="HDT55","GET_rel"],paired=TRUE)
 
-all_pvals["BDC-HDT55","GET"]<-b$p
-all_pvals["CON-ME","GET"]<-a$p.adj[2]
-all_pvals["CON-LC","GET"]<-a$p.adj[1]
-all_pvals["LC-ME","GET"]<-a$p.adj[3]
-all_pvals["BED_REST_test","GET"]<-"paired_t_test"
-all_pvals["POST_VIRAL_test","GET"]<-"anova_tukey_post_hoc"
+all_pvals["BDC-HDT55","GET_rel"]<-b$p.value
+all_pvals["CON-ME","GET_rel"]<-a$p.value[2]
+all_pvals["CON-LC","GET_rel"]<-a$p.value[1]
+all_pvals["LC-ME","GET_rel"]<-a$p.value[4]
+all_pvals["BED_REST_test","GET_rel"]<-"wilcoxon_signed_rank"
+all_pvals["POST_VIRAL_test","GET_rel"]<-"kruskal_pairwise_wilcox_post_hoc"
 
 
 # Make graph --------------------------------------------------------------
@@ -603,29 +604,28 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
   "CON","ME","p<0.001","POST-VIRAL",
-  "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-  "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
+  "CON","LC","p<0.001","POST-VIRAL",
+  "LC","ME","p<0.001","POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
 
-GET_a<-
+GET_rel_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
          aes(
            x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
-           y=GET, group=Session,fill=Session))+
+           y=GET_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("GET (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,3.5), breaks=seq(0,3,1),expand=c(0,0))+
+  ylab(expression("GET (mL"~min^-1*~kg^-1*")"))+
+    scale_y_continuous(limits=c(0,50), breaks=c(0,10,20,30,40),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(3.1), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(40), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
         axis.ticks.x =element_blank(),
         text=element_text(size=base_size, family = "Arial"),
@@ -645,33 +645,32 @@ GET_a<-
   guides(y=guide_axis(cap="upper"))
 
 
-ggsave(plot=GET_a,
-       filename = paste(output_folder,"/GET_a_",date,".png", sep = ""),
+ggsave(plot=GET_rel_a,
+       filename = paste(output_folder,"/GET_rel_a_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
 
-GET_b<-
+GET_rel_b<-
   ggplot(plot_data[plot_data$Group=="POST-VIRAL",], 
          aes(
            x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
-           y=GET, group=Session,fill=Session))+
+           y=GET_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("GET (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,3.5), breaks=seq(0,3,1),expand=c(0,0))+
+  ylab(expression("GET (mL"~min^-1*~kg^-1*")"))+
+  scale_y_continuous(limits=c(0,50), breaks=c(0,10,20,30,40),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(3.3), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(45), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
-  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(3.1), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(40), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
-  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(2.8), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(35), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
         axis.ticks.x =element_blank(),
         text=element_text(size=base_size, family = "Arial"),
@@ -690,8 +689,8 @@ GET_b<-
   )+
   guides(y=guide_axis(cap="upper"))
 
-ggsave(plot=GET_b,
-       filename = paste(output_folder,"/GET_b_",date,".png", sep = ""),
+ggsave(plot=GET_rel_b,
+       filename = paste(output_folder,"/GET_rel_b_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
 
 
@@ -715,7 +714,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","VE_max"]);qqline(test2[test2$Session=="ME","VE_max"])
 
 model <-lme(VE_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","VE_max"]<-a$`Pr(>Chisq)`
 
 
@@ -725,9 +724,7 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","VE_max"]<-b$p
-# all_pvals["CON-ME","VE_max"]<-a$p.adj[2]
-# all_pvals["CON-LC","VE_max"]<-a$p.adj[1]
-# all_pvals["LC-ME","VE_max"]<-a$p.adj[3]
+
 all_pvals["BED_REST_test","VE_max"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","VE_max"]<-"anova_tukey_post_hoc"
 
@@ -738,8 +735,7 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
   "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
-# "CON","LC","p<0.001","POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
+
 
 plot_data<-data[!data$Subject %in% remove,]
 
@@ -842,7 +838,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","EqCO2_max"]);qqline(test2[test2$Session=="ME","EqCO2_max"])
 
 model <-lme(EqCO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","EqCO2_max"]<-a$`Pr(>Chisq)`
       
 b<-
@@ -851,9 +847,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","EqCO2_max"]<-b$p
-# all_pvals["CON-ME","EqCO2_max"]<-a$p.adj[2]
-# all_pvals["CON-LC","EqCO2_max"]<-a$p.adj[1]
-# all_pvals["LC-ME","EqCO2_max"]<-a$p.adj[3]
 all_pvals["BED_REST_test","EqCO2_max"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","EqCO2_max"]<-"anova_no_post_hoc"
 
@@ -864,8 +857,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
   "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -982,7 +973,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","FCSA"]);qqline(test2[test2$Session=="ME","FCSA"])
 
 model <-lme(FCSA~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -992,9 +983,6 @@ b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c
 
 
 all_pvals["BDC-HDT55","FCSA"]<-b$p
-# all_pvals["CON-ME","FCSA"]<-a$p.adj[2]
-# all_pvals["CON-LC","FCSA"]<-a$p.adj[1]
-# all_pvals["LC-ME","FCSA"]<-a$p.adj[3]
 all_pvals["BED_REST_test","FCSA"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","FCSA"]<-"anova_tukey_no_hoc"
 
@@ -1006,8 +994,7 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
   "CON","ME",format(paste(round(a$`Pr(>Chisq)`,3)),nsmall=3),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
+
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -1115,7 +1102,7 @@ test2<-test[!test$Subject %in% remove ,]
 
 model <-lme(SDH~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 
 all_pvals["ANOVA","SDH"]<-a$`Pr(>Chisq)`
 # post-hoc testing
@@ -1397,9 +1384,9 @@ plot_data<-data[!data$Subject %in% remove, ]
 # cocor(~VO2_rel+SDH| VO2_rel  + SDH, df )
 
 model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="BED REST",])
-car::Anova(model)
+Anova(model)
 model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
-car::Anova(model)
+Anova(model)
 
 
 y<-plot_data$VO2_rel
@@ -1530,9 +1517,9 @@ remove<-data[is.na(data$Oxphos)==TRUE | is.na(data$VO2_rel)==TRUE | data$membran
 plot_data<-data[!data$Subject %in% remove, ]
 
 model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="BED REST",])
-car::Anova(model)
+Anova(model)
 model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
-car::Anova(model)
+Anova(model)
 
 
 # df<-list(plot_data[plot_data$Session=="BDC",],plot_data[plot_data$Session=="HDT55",])
@@ -1689,6 +1676,7 @@ ggsave(plot=VO2_v_Oxphos_b,
 remove<-data[is.na(data$CF)==TRUE ,"Subject"]
 test2<-test[!test$Subject %in% remove ,]
 
+
 # qqnorm(test2[test2$Session=="BDC","CF"]);qqline(test2[test2$Session=="BDC","CF"])
 # qqnorm(test2[test2$Session=="HDT55","CF"]);qqline(test2[test2$Session=="HDT55","CF"])
 # qqnorm(test2[test2$Session=="CON","CF"]);qqline(test2[test2$Session=="CON","CF"])
@@ -1696,7 +1684,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","CF"]);qqline(test2[test2$Session=="ME","CF"])
 
 model <-lme(CF~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","CF"]<-a$`Pr(>Chisq)`
 
 # post-hoc testing
@@ -1764,6 +1752,8 @@ CF_a<-
         axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
   )+
   guides(y=guide_axis(cap="upper"))
+
+
 
 ggsave(plot=CF_a,
        filename = paste(output_folder,"/CF_a_",date,".png", sep = ""),
@@ -1837,7 +1827,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","CD"]);qqline(test2[test2$Session=="ME","CD"])
 
 model <-lme(CD~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","CD"]<-a$`Pr(>Chisq)`
 
 # post-hoc testing
@@ -2008,9 +1998,7 @@ summary(lm(CF~FCSA, data=plot_data[plot_data$Session=="LC",]))
 summary(lm(CF~FCSA, data=plot_data[plot_data$Session=="ME",]))
 
 
-cor_pvals<-as.data.frame(matrix(ncol = 6))
-colnames(cor_pvals)<-colnames(cor_data)
-cor_pvals<-cor_data
+cor_pvals<-rbind(cor_pvals,cor_data)
 
 
 # Make graph --------------------------------------------------------------
@@ -2114,7 +2102,696 @@ ggsave(plot=CF_v_FCSA_b,
        device="png",  width = 20, height = 16, units = "in")
 
 
-# Supplemental 1 ----------------------------------------------------------
+# Supplemental Figure 1 -----------------------------------------
+
+ME_sx_dat<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx",sheet="ME_pathogen_infection"))
+
+ME_sx_report<-
+  ggplot(data=ME_sx_dat,aes(y=Pathogen_type, fill=Pathogen_type))+
+  geom_bar(, colour="black", linewidth=0.5)+
+  scale_fill_brewer(type="qual",palette=3)+
+  scale_x_continuous(limits=c(0,12), breaks=seq(0,10,2),expand=c(0,0))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size/2),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size-20)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+axis_text_rel_size-10)/base_size))
+  )+
+  guides(x=guide_axis(cap="upper"))
+
+ggsave(plot=ME_sx_report,
+       filename = paste(output_folder,"/ME_sx_report_",date,".png", sep = ""),
+       device="png",  width = 20, height = 14, units = "in")
+
+
+# Supplemental Figure 2  ----------------------------------------------------
+
+DSQ<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="DSQ_PEM"))
+
+DSQ_pvals<-as.data.frame(matrix(ncol=length(colnames(DSQ)), nrow=4))
+
+colnames(DSQ_pvals)<-colnames(DSQ)
+rownames(DSQ_pvals)<-c("CON-ME","CON-LC","LC-ME","Kruskal_wallis")
+
+#Q1-Q5 summary stats
+
+ME_id<-DSQ[DSQ$Session=="ME","Subject"]
+LC_id<-DSQ[DSQ$Session=="LC","Subject"]
+CON_id<-DSQ[DSQ$Session=="CON","Subject"]
+
+median(DSQ[DSQ$Subject %in% ME_id,"SQ5DSQ_PEM" ]); min(DSQ[DSQ$Subject %in% ME_id,"SQ5DSQ_PEM" ]); max(DSQ[DSQ$Subject %in% ME_id,"SQ5DSQ_PEM" ])
+
+median(DSQ[DSQ$Subject %in% LC_id,"SQ5DSQ_PEM" ]); min(DSQ[DSQ$Subject %in% LC_id,"SQ5DSQ_PEM" ]); max(DSQ[DSQ$Subject %in% LC_id,"SQ5DSQ_PEM" ])
+
+median(DSQ[DSQ$Subject %in% CON_id,"SQ5DSQ_PEM" ]); min(DSQ[DSQ$Subject %in% CON_id,"SQ5DSQ_PEM" ]); max(DSQ[DSQ$Subject %in% CON_id,"SQ5DSQ_PEM" ])
+
+
+#Freq Q1 
+a<-kruskal.test(FQ1DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","FQ1DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"FQ1DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","FQ1DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","FQ1DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","FQ1DSQ_PEM"]<-a$p.value[4]
+
+#Freq Q2 
+a<-kruskal.test(FQ2DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","FQ2DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"FQ2DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","FQ2DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","FQ2DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","FQ2DSQ_PEM"]<-a$p.value[4]
+
+#Freq Q3 
+a<-kruskal.test(FQ3DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","FQ3DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"FQ3DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","FQ3DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","FQ3DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","FQ3DSQ_PEM"]<-a$p.value[4]
+
+
+#Freq Q4 
+a<-kruskal.test(FQ4DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","FQ4DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"FQ4DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","FQ4DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","FQ4DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","FQ4DSQ_PEM"]<-a$p.value[4]
+
+#Freq Q5 
+a<-kruskal.test(FQ5DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","FQ5DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"FQ5DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","FQ5DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","FQ5DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","FQ5DSQ_PEM"]<-a$p.value[4]
+
+
+#Severity Q1 
+a<-kruskal.test(SQ1DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","SQ1DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"SQ1DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","SQ1DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","SQ1DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","SQ1DSQ_PEM"]<-a$p.value[4]
+
+#Severity Q2 
+a<-kruskal.test(SQ2DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","SQ2DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"SQ2DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","SQ2DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","SQ2DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","SQ2DSQ_PEM"]<-a$p.value[4]
+
+#Severity Q3 
+a<-kruskal.test(SQ3DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","SQ3DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"SQ3DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","SQ3DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","SQ3DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","SQ3DSQ_PEM"]<-a$p.value[4]
+
+
+#Severity Q4 
+a<-kruskal.test(SQ4DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","SQ4DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"SQ4DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","SQ4DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","SQ4DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","SQ4DSQ_PEM"]<-a$p.value[4]
+
+#Severity Q5 
+a<-kruskal.test(SQ5DSQ_PEM~Session, data=DSQ)
+DSQ_pvals["Kruskal_wallis","SQ5DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ[,"SQ5DSQ_PEM"], DSQ[,"Session"], p.adjust.method="BH")
+
+DSQ_pvals["CON-LC","SQ5DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","SQ5DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","SQ5DSQ_PEM"]<-a$p.value[4]
+
+
+
+# Q6
+DSQ2<-DSQ %>% 
+  select(Q6DSQ_PEM, Session, Subject)
+
+DSQ2$Q6DSQ_PEM<-ifelse(DSQ2$Q6DSQ_PEM=="Yes",1,0)
+
+a<-kruskal.test(Q6DSQ_PEM~Session, data=DSQ2)
+DSQ_pvals["Kruskal_wallis","Q6DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ2[,"Q6DSQ_PEM"], DSQ2[,"Session"], p.adjust.method="BH", paired=F)
+
+DSQ_pvals["CON-LC","Q6DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","Q6DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","Q6DSQ_PEM"]<-a$p.value[4]
+
+
+DSQ6<-
+  ggplot(data=DSQ[is.na(DSQ$Q6DSQ_PEM)==F& DSQ$Q6DSQ_PEM!="NA",],aes(x=Q6DSQ_PEM, fill=Session))+
+  geom_bar(colour="black",linewidth=1)+
+  scale_fill_manual(values = c("CON"="white", "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Q6 # of Responses"))+
+  scale_y_continuous(limits=c(0,45), breaks=seq(0,30,10),expand=c(0,0))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~fct_relevel(Session, "CON","LC","ME"))+
+    geom_label(data = data.frame(x = 1.5,
+                                 y = 35,
+                                 Session="CON",
+                                 label = paste("CON vs LC: p<0.001","\n",
+                                               "CON vs ME: p<0.001","\n",
+                                               "LC vs ME: p=",format(round(a$p.value[4],3), drop0trailing=F),
+                                               sep="")),
+               aes(label = label, group=Session,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+    
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=DSQ6,
+       filename = paste(output_folder,"/DSQ6_",date,".png", sep = ""),
+       device="png",  width = 20, height = 16, units = "in")
+
+# Q7
+DSQ2<-DSQ %>% 
+  select(Q7DSQ_PEM, Session, Subject)
+
+DSQ2$Q7DSQ_PEM<-ifelse(DSQ2$Q7DSQ_PEM=="Yes",1,0)
+
+a<-kruskal.test(Q7DSQ_PEM~Session, data=DSQ2)
+DSQ_pvals["Kruskal_wallis","Q7DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ2[,"Q7DSQ_PEM"], DSQ2[,"Session"], p.adjust.method="BH", paired=F)
+
+DSQ_pvals["CON-LC","Q7DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","Q7DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","Q7DSQ_PEM"]<-a$p.value[4]
+
+
+DSQ7<-
+  ggplot(data=DSQ[is.na(DSQ$Q7DSQ_PEM)==F& DSQ$Q7DSQ_PEM!="NA",],aes(x=Q7DSQ_PEM, fill=Session))+
+  geom_bar(colour="black",linewidth=1)+
+  scale_fill_manual(values = c("CON"="white", "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Q7 # of Responses"))+
+  scale_y_continuous(limits=c(0,45), breaks=seq(0,30,10),expand=c(0,0))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~fct_relevel(Session, "CON","LC","ME"))+
+  geom_label(data = data.frame(x = 1.5,
+                               y = 35,
+                               Session="CON",
+                               label = paste("CON vs LC: p<0.001","\n",
+                                             "CON vs ME: p<0.001","\n",
+                                             "LC vs ME: p=",format(round(a$p.value[4],3), drop0trailing=F),
+                                             sep="")),
+             aes(label = label, group=Session,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=DSQ7,
+       filename = paste(output_folder,"/DSQ7_",date,".png", sep = ""),
+       device="png",  width = 20, height = 16, units = "in")
+
+# Q8
+DSQ2<-DSQ %>% 
+  select(Q8DSQ_PEM, Session, Subject)
+
+DSQ2$Q8DSQ_PEM<-ifelse(DSQ2$Q8DSQ_PEM=="Yes",1,0)
+
+a<-kruskal.test(Q8DSQ_PEM~Session, data=DSQ2)
+DSQ_pvals["Kruskal_wallis","Q8DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ2[,"Q8DSQ_PEM"], DSQ2[,"Session"], p.adjust.method="BH", paired=F)
+
+DSQ_pvals["CON-LC","Q8DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","Q8DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","Q8DSQ_PEM"]<-a$p.value[4]
+
+
+DSQ8<-
+  ggplot(data=DSQ[is.na(DSQ$Q8DSQ_PEM)==F& DSQ$Q8DSQ_PEM!="NA",],aes(x=Q8DSQ_PEM, fill=Session))+
+  geom_bar(colour="black",linewidth=1)+
+  scale_fill_manual(values = c("CON"="white", "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Q8 # of Responses"))+
+  scale_y_continuous(limits=c(0,45), breaks=seq(0,30,10),expand=c(0,0))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~fct_relevel(Session, "CON","LC","ME"))+
+  geom_label(data = data.frame(x = 1.5,
+                               y = 35,
+                               Session="CON",
+                               label = paste("CON vs LC: p<0.001","\n",
+                                             "CON vs ME: p<0.001","\n",
+                                             "LC vs ME: p=",format(round(a$p.value[4],3), drop0trailing=F),
+                                             sep="")),
+             aes(label = label, group=Session,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=DSQ8,
+       filename = paste(output_folder,"/DSQ8_",date,".png", sep = ""),
+       device="png",  width = 20, height = 16, units = "in")
+
+
+# Q9
+DSQ2<-DSQ %>% 
+  select(Q9DSQ_PEM, Session, Subject)
+
+DSQ2$Q9DSQ_PEM<-recode_factor(DSQ2$Q9DSQ_PEM, '<1 h'=1, '2-3 h'=2,'4-10 h'=3,'11-13 h'=4,'14-23 h'=5,'>24 h'=6 )
+
+DSQ2<-DSQ2[is.na(DSQ2$Q9DSQ_PEM)==F,]
+
+DSQ2$Q9DSQ_PEM<-as.numeric(DSQ2$Q9DSQ_PEM)
+
+a<-kruskal.test(Q9DSQ_PEM~Session, data=DSQ2)
+DSQ_pvals["Kruskal_wallis","Q9DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ2[,"Q9DSQ_PEM"], DSQ2[,"Session"], p.adjust.method="BH", paired=F)
+
+DSQ_pvals["CON-LC","Q9DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","Q9DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","Q9DSQ_PEM"]<-a$p.value[4]
+
+
+
+
+DSQ2<-DSQ %>% 
+  select(Q9DSQ_PEM, Session, Subject)
+DSQ2<-DSQ2[is.na(DSQ2$Q9DSQ_PEM)==F,]
+
+DSQ9<-
+  ggplot(data=DSQ2[is.na(DSQ2$Q9DSQ_PEM)==F &DSQ2$Q9DSQ_PEM!="NA" ,],aes(x=fct_relevel(Q9DSQ_PEM,"<1 h","2-3 h","4-10 h","11-13 h","14-23 h",">24 h"), fill=Session))+
+  geom_bar(position =position_dodge2(preserve = "single"), linewidth=1, colour="black")+
+  scale_fill_manual(values = c("CON"="white", "LC"=colours3[3], "ME"=colours3[4]))+
+  scale_colour_manual(values = c("CON"="black", "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Q9 # of Responses"))+
+  scale_y_continuous(limits=c(0,45), breaks=seq(0,30,10),expand=c(0,0))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+axis_text_rel_size-10)/base_size))
+  )+
+  geom_label(data = data.frame(x = 1.5,
+                               y = 25,
+                               label = paste("CON vs LC: p<0.001","\n",
+                                             "CON vs ME: p<0.001","\n",
+                                             "LC vs ME: p<0.001",
+                                             sep="")),
+             aes(label = label,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=DSQ9,
+       filename = paste(output_folder,"/DSQ9_",date,".png", sep = ""),
+       device="png",  width = 20, height = 16, units = "in")
+
+
+
+# Q10
+DSQ2<-DSQ %>% 
+  select(Q10DSQ_PEM, Session, Subject)
+
+DSQ2$Q10DSQ_PEM<-ifelse(DSQ2$Q10DSQ_PEM=="Yes",1,0)
+
+a<-kruskal.test(Q10DSQ_PEM~Session, data=DSQ2)
+DSQ_pvals["Kruskal_wallis","Q10DSQ_PEM"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ2[,"Q10DSQ_PEM"], DSQ2[,"Session"], p.adjust.method="BH", paired=F)
+
+DSQ_pvals["CON-LC","Q10DSQ_PEM"]<-a$p.value[1]
+DSQ_pvals["CON-ME","Q10DSQ_PEM"]<-a$p.value[2]
+DSQ_pvals["LC-ME","Q10DSQ_PEM"]<-a$p.value[4]
+
+DSQ10<-
+  ggplot(data=DSQ[is.na(DSQ$Q10DSQ_PEM)==F & DSQ$Q10DSQ_PEM!="NA" ,],aes(x=Q10DSQ_PEM, fill=Session))+
+  geom_bar(colour="black",linewidth=1)+
+  scale_fill_manual(values = c("CON"="white", "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Q10 # of Responses"))+
+  scale_y_continuous(limits=c(0,45), breaks=seq(0,30,10),expand=c(0,0))+
+  # scale_x_discrete(labels=c("CON"="CON ","LC"="LC","ME"="ME"))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        # axis.ticks = element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~fct_relevel(Session, "CON","LC","ME"))+
+  geom_label(data = data.frame(x = 1.5,
+                               y = 35,
+                               Session="CON",
+                               label = paste("CON vs LC: p<0.001","\n",
+                                             "CON vs ME: p<0.001","\n",
+                                             "LC vs ME: p=",format(round(a$p.value[4],3), drop0trailing=F),
+                                             sep="")),
+             aes(label = label, group=Session,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=DSQ10,
+       filename = paste(output_folder,"/DSQ10_",date,".png", sep = ""),
+       device="png",  width = 20, height = 16, units = "in")
+
+# Number of postive for PEM
+DSQ2<-DSQ %>% 
+  select(DSQ_tres, Session, Subject)
+
+DSQ2$DSQ_tres<-ifelse(DSQ2$DSQ_tres=="Yes",1,0)
+
+a<-kruskal.test(DSQ_tres~Session, data=DSQ2)
+DSQ_pvals["Kruskal_wallis","DSQ_tres"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(DSQ2[,"DSQ_tres"], DSQ2[,"Session"], p.adjust.method="BH", paired=F)
+
+DSQ_pvals["CON-LC","DSQ_tres"]<-a$p.value[1]
+DSQ_pvals["CON-ME","DSQ_tres"]<-a$p.value[2]
+DSQ_pvals["LC-ME","DSQ_tres"]<-a$p.value[4]
+
+
+stat_test<-tibble::tribble(
+  ~group1, ~group2, ~p.adj,~Session,
+  # "Yes","No",paste("‡"),"CON",
+  "Yes","No",paste(paste("p<0.001","*",sep=""),
+                   "\n",
+                   paste("p<0.001","\u2020",sep=""),sep=""),"CON",
+  "Yes","No","1.00*","LC")
+
+
+Pos_PEM<-
+  ggplot(data=DSQ[is.na(DSQ$DSQ_tres)==F & DSQ$DSQ_tres!="NA",],aes(x=DSQ_tres, fill=Session))+
+  geom_bar(colour="black",linewidth=1)+
+  scale_fill_manual(values = c("CON"="white", "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Diagnosis # of Positives"))+
+  scale_y_continuous(limits=c(0,45), breaks=seq(0,30,10),expand=c(0,0))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~fct_relevel(Session, "CON","LC","ME"))+
+  geom_label(data = data.frame(x = 1.5,
+                               y = 35,
+                               Session="CON",
+                               label = paste("CON vs LC: p<0.001","\n",
+                                             "CON vs ME: p<0.001","\n",
+                                             "LC vs ME: p=",format(round(a$p.value[4],3), drop0trailing=F),
+                                             sep="")),
+             aes(label = label, group=Session,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=Pos_PEM,
+       filename = paste(output_folder,"/Pos_PEM_",date,".png", sep = ""),
+       device="png",  width = 20, height = 16, units = "in")
+
+
+
+
+# Supplemental Figure 3 ---------------------------------------------------
+
+
+# Symptom Reports long COVID ---------------------------------
+
+Sx_data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Sx_percentages"))
+
+LC_sx<-Sx_data[Sx_data$Session=="LC",]
+
+
+label_data <- LC_sx
+
+# calculate the angle of the labels
+number_of_bar <- nrow(label_data)
+label_data$bar_number<-as.numeric(rownames(label_data))
+angle <-  90 - 360 *  (label_data$bar_number-0.5)/number_of_bar   
+label_data$hjust<-ifelse( angle <= -90, 1, 0)
+# flip angle BY to make them readable
+label_data$angle<-ifelse(angle <= -90, angle+180, angle) 
+
+
+LC_sx_plot<-
+  ggplot(data=LC_sx, aes(
+    x=Sx,
+    y=as.numeric(perc),
+    group=Session, fill=Sx))+
+  geom_hline(
+    yintercept = c(30,60,90),
+    color = "lightgrey"
+  ) + 
+  geom_col()+
+  annotate(
+    x = 11.7, 
+    y = 60, 
+    label = "60%", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Arial", size=4
+  ) +
+  annotate(
+    x = 11.7, 
+    y =90, 
+    label = "90%", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Arial", size=4
+  ) +
+  scale_y_continuous(limits=c(-20,120),expand = c(0,0))+
+  theme(
+    legend.position = "none",
+    axis.line=element_blank(),
+    text=element_text(size=base_size, family = "Arial"),
+    panel.background  = element_rect(fill="white", colour = "white"),
+    panel.grid.major = element_blank(),
+    panel.grid.major.x = element_blank(),
+    plot.title = element_text(
+      size = rel((title_text_rel_size + base_size) / base_size),
+      hjust = 0.5
+    ),
+    plot.margin = unit(rep(0,4), "cm"),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_blank(),
+  )+
+  coord_polar(start=0)+
+  geom_text(data=label_data, aes(x=Sx, y=as.numeric(perc)+10, label=Sx, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=8, angle= label_data$angle, inherit.aes = FALSE )
+
+ggsave(plot=LC_sx_plot,
+       filename = paste(output_folder,"/LC_sx_plot_",date,".png", sep = ""),
+       device="png",  width = 30, height = 16, units = "in")
+
+
+
+
+# Symptom Reports ME -----------------------------------------
+
+ME_sx<-Sx_data[Sx_data$Session=="ME",]
+
+rownames(ME_sx)<-1:length(rownames(ME_sx))
+
+ME_sx$Sx_short_wrap<-str_wrap(ME_sx$Sx_short,width=30)
+
+
+
+label_data <- ME_sx
+
+# calculate the angle of the labels
+number_of_bar <- nrow(label_data)
+label_data$bar_number<-as.numeric(rownames(label_data))
+angle <-  90 - 360 *  (label_data$bar_number-0.5)/number_of_bar    
+label_data$hjust<-ifelse( angle <= -90, 1, 0)
+
+label_data$angle<-ifelse(angle <= -90, angle+180, angle) 
+
+ME_sx_plot<-
+  ggplot(data=ME_sx, aes(
+    x=Sx_short_wrap,
+    y=as.numeric(perc),
+    group=Session, fill=Sx))+
+  geom_hline(
+    yintercept = c(30,60,90),
+    color = "lightgrey"
+  ) + 
+  geom_col()+
+  annotate(
+    x = 11.7, 
+    y = 30, 
+    label = "30%", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Arial"
+  ) +
+  annotate(
+    x = 11.7,
+    y = 60,
+    label = "60%",
+    geom = "text",
+    color = "gray12",
+    family = "Arial"
+  ) +
+  annotate(
+    x = 11.7, 
+    y =90, 
+    label = "90%", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Arial"
+  ) +
+  scale_y_continuous(limits=c(-20,200),expand = c(0,0))+
+  theme(
+    legend.position = "none",
+    axis.line=element_blank(),
+    text=element_text(size=base_size/2, family = "Arial"),
+    panel.background  = element_rect(fill="white", colour = "white"),
+    panel.grid.major = element_blank(),
+    panel.grid.major.x = element_blank(),
+    plot.title = element_text(
+      size = rel((title_text_rel_size + base_size) / base_size),
+      hjust = 0.5
+    ),
+    plot.margin = unit(rep(0,4), "cm"),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_blank(),
+  )+
+  coord_polar(start=0)+
+  geom_text(data=label_data, aes(x=Sx_short_wrap, y=as.numeric(perc)+10, label=Sx_short_wrap, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=6, angle= label_data$angle, inherit.aes = FALSE )
+
+
+ggsave(plot=ME_sx_plot,
+       filename = paste(output_folder,"/ME_sx_plot_",date,".png", sep = ""),
+       device="png",  width = 30, height = 16, units = "in")
+
+
+# Supplemental figure 4 ----------------------------------------------------------
 
 
 selection<-c("K","N","W","G","U","B","T","R1","J","C","L","E","F","D","H","V","M",
@@ -2161,17 +2838,17 @@ kruskal.test(Height~Session, test2)
 
 
 # BC VO2 ------------------------------------------------------------------
-remove<-BC_data[is.na(BC_data$VO2_abs)==TRUE   ,"Subject"]
+remove<-BC_data[is.na(BC_data$VO2_rel)==TRUE   ,"Subject"]
 BC_test2<-BC_test[!BC_test$Subject %in% remove,]
-# shapiro.test(BC_test2[BC_test2$Session=="BDC","VO2_abs"])
-# shapiro.test(BC_test2[BC_test2$Session=="CON","VO2_abs"]) 
-# qqnorm(BC_test2[BC_test2$Session=="BDC","VO2_abs"]);qqline(BC_test2[BC_test2$Session=="BDC","VO2_abs"]) 
-# qqnorm(BC_test2[BC_test2$Session=="CON","VO2_abs"]);qqline(BC_test2[BC_test2$Session=="CON","VO2_abs"]) 
+# shapiro.test(BC_test2[BC_test2$Session=="BDC","VO2_rel"])
+# shapiro.test(BC_test2[BC_test2$Session=="CON","VO2_rel"])
+# qqnorm(BC_test2[BC_test2$Session=="BDC","VO2_rel"]);qqline(BC_test2[BC_test2$Session=="BDC","VO2_rel"])
+# qqnorm(BC_test2[BC_test2$Session=="CON","VO2_rel"]);qqline(BC_test2[BC_test2$Session=="CON","VO2_rel"])
 
 a<-
-  wilcox.test(BC_test2[BC_test2$Session=="BDC","VO2_abs"],test2[test2$Session=="CON","VO2_abs"],paired=F)
+  wilcox.test(BC_test2[BC_test2$Session=="BDC","VO2_rel"],test2[test2$Session=="CON","VO2_rel"],paired=F)
 
-BC_pvals["CON-BDC","VO2_abs"]<-a$p.value
+BC_pvals["CON-BDC","VO2_rel"]<-a$p.value
 
 
 stat_test <- tibble::tribble(
@@ -2183,19 +2860,23 @@ plot_data<-BC_data[!BC_data$Subject %in% remove,]
 
 VO2_BC<-
   ggplot(plot_data, 
-         aes(x=fct_relevel(Session,"BDC","CON"),y=VO2_abs, group=Session,fill=Session))+
+         aes(x=fct_relevel(Session,"BDC","CON"),y=VO2_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("BDC"=colours3[2], "CON"="white"))+
-  ylab(expression("V\U0307" ~O[2]*"max (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,4.9), breaks=seq(0,4,1),expand=c(0,0))+
+  ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
+  scale_y_continuous(limits=c(0,65), breaks=c(0,20,30,40,50,60),expand=c(0,0))+
+  scale_y_cut(breaks=c(10),
+              space=c(0.5),
+              scales=c(30),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
   scale_x_discrete(labels=c( "BDC"=expression(atop("PRE","BED REST")),"CON"="CON"))+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(4.3), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(55), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
         axis.ticks.x =element_blank(),
         text=element_text(size=base_size, family = "Arial"),
@@ -2220,20 +2901,88 @@ ggsave(plot=VO2_BC,
 
 
 
+# BC FRIEND ---------------------------------------------------------------
+
+
+remove<-BC_data[is.na(BC_data$VO2_perc_pred)==TRUE   ,"Subject"]
+BC_test2<-BC_test[!BC_test$Subject %in% remove,]
+# shapiro.test(BC_test2[BC_test2$Session=="BDC","VO2_perc_pred"])
+# shapiro.test(BC_test2[BC_test2$Session=="CON","VO2_perc_pred"])
+# qqnorm(BC_test2[BC_test2$Session=="BDC","VO2_perc_pred"]);qqline(BC_test2[BC_test2$Session=="BDC","VO2_perc_pred"])
+# qqnorm(BC_test2[BC_test2$Session=="CON","VO2_perc_pred"]);qqline(BC_test2[BC_test2$Session=="CON","VO2_perc_pred"])
+
+
+
+model<-lme(VO2_perc_pred~Session, data=BC_test2,random = ~ 1|Subject, na.action = na.omit, control="optim" )
+
+a<-Anova(model)
+
+BC_pvals["CON-BDC","VO2_perc_pred"]<-a$`Pr(>Chisq)`
+
+
+stat_test <- tibble::tribble(
+  ~group1, ~group2, ~p.adj, ~Group,
+  "BDC","CON",paste(format(round(a$`Pr(>Chisq)`[1],3), drop0trailing=F)),"BED REST")
+
+
+plot_data<-BC_data[!BC_data$Subject %in% remove,]
+
+VO2_FRIEND_BC<-
+  ggplot(plot_data, 
+         aes(x=fct_relevel(Session,"BDC","CON"),y=VO2_perc_pred*100, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("BDC"=colours3[2], "CON"="white"))+
+  ylab(bquote(atop("V\U0307" ~O[2]*"max","(% of FRIEND predicted)")))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  scale_y_continuous(limits=c(0,170), breaks=c(0,40,80,120,160),expand=c(0,0))+
+  scale_y_cut(breaks=c(30),
+              space=c(0.5),
+              scales=c(40),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
+  scale_x_discrete(labels=c( "BDC"=expression(atop("PRE","BED REST")),"CON"="CON"))+
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(165), bracket.size=2,
+                     label.size=14,tip.length = 0.02,
+                     linetype="solid", inherit.aes=FALSE)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=VO2_FRIEND_BC,
+       filename = paste(output_folder,"/VO2_FRIEND_BC_",date,".png", sep = ""),
+       device="png",  width = 11, height = 14, units = "in")
+
+
 # BC GET ------------------------------------------------------------------
 remove<-BC_data[is.na(BC_data$GET)==TRUE   ,"Subject"]
 BC_test2<-BC_test[!BC_test$Subject %in% remove,]
-# shapiro.test(BC_test2[BC_test2$Session=="BDC","GET"])
-# shapiro.test(BC_test2[BC_test2$Session=="CON","GET"])
-# qqnorm(BC_test2[BC_test2$Session=="BDC","GET"]);qqline(BC_test2[BC_test2$Session=="BDC","GET"]) 
-# qqnorm(BC_test2[BC_test2$Session=="CON","GET"]);qqline(BC_test2[BC_test2$Session=="CON","GET"]) 
+# shapiro.test(BC_test2[BC_test2$Session=="BDC","GET_rel"])
+# shapiro.test(BC_test2[BC_test2$Session=="CON","GET_rel"])
+# qqnorm(BC_test2[BC_test2$Session=="BDC","GET_rel"]);qqline(BC_test2[BC_test2$Session=="BDC","GET_rel"])
+# qqnorm(BC_test2[BC_test2$Session=="CON","GET_rel"]);qqline(BC_test2[BC_test2$Session=="CON","GET_rel"])
 
-model<-lme(GET~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-car::Anova(model)
+
 a<-
-  t.test(BC_test2[BC_test2$Session=="CON","GET"], BC_test2[BC_test2$Session=="BDC","GET"], paired=FALSE)
+  wilcox.test(BC_test2[BC_test2$Session=="BDC","GET_rel"],BC_test2[BC_test2$Session=="CON","GET_rel"],paired=F)
 
-BC_pvals["CON-BDC","GET"]<-a$p.value
+
+BC_pvals["CON-BDC","GET_rel"]<-a$p.value
 
 
 stat_test <- tibble::tribble(
@@ -2245,14 +2994,14 @@ plot_data<-BC_data[!BC_data$Subject %in% remove,]
 
 GET_BC<-
   ggplot(plot_data, 
-         aes(x=fct_relevel(Session,"BDC","CON"),y=GET, group=Session,fill=Session))+
+         aes(x=fct_relevel(Session,"BDC","CON"),y=GET_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("BDC"=colours3[2], "CON"="white"))+
-  ylab(expression("GET (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,3.4), breaks=seq(0,3,1),expand=c(0,0))+
+    ylab(expression("GET (mL"~min^-1*~kg^-1*")"))+
+    scale_y_continuous(limits=c(0,50), breaks=c(0,10,20,30,40),expand=c(0,0))+
   scale_x_discrete(labels=c( "BDC"=expression(atop("PRE","BED REST")),"CON"="CON"))+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(3.15), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(40), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
@@ -2289,8 +3038,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="BDC","GET_perc"]);qqline(BC_test2[BC_test2$Session=="BDC","GET_perc"]) 
 # qqnorm(BC_test2[BC_test2$Session=="CON","GET_perc"]);qqline(BC_test2[BC_test2$Session=="CON","GET_perc"]) 
 
-model<-lme(GET_perc~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-car::Anova(model)
+
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","GET_perc"], BC_test2[BC_test2$Session=="BDC","GET_perc"], paired=FALSE)
 
@@ -2353,10 +3101,8 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="BDC","SDH"]);qqline(BC_test2[BC_test2$Session=="BDC","SDH"]) 
 # qqnorm(BC_test2[BC_test2$Session=="CON","SDH"]);qqline(BC_test2[BC_test2$Session=="CON","SDH"]) 
 
-
-
 a<-
-  wilcox.test(BC_test2[BC_test2$Session=="BDC","SDH"],test2[test2$Session=="CON","SDH"],paired=F)
+  wilcox.test(BC_test2[BC_test2$Session=="BDC","SDH"],BC_test2[BC_test2$Session=="CON","SDH"],paired=F)
 
 
 BC_pvals["CON-BDC","SDH"]<-a$p.value
@@ -2383,7 +3129,6 @@ SDH_BC<-
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
         axis.ticks.x =element_blank(),
         text=element_text(size=base_size, family = "Arial"),
@@ -2416,8 +3161,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="BDC","Oxphos"]);qqline(BC_test2[BC_test2$Session=="BDC","Oxphos"]) 
 # qqnorm(BC_test2[BC_test2$Session=="CON","Oxphos"]);qqline(BC_test2[BC_test2$Session=="CON","Oxphos"]) 
 
-model<-lme(Oxphos~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-car::Anova(model)
+
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","Oxphos"], BC_test2[BC_test2$Session=="BDC","Oxphos"], paired=FALSE)
 
@@ -2475,8 +3219,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="BDC","CF"]);qqline(BC_test2[BC_test2$Session=="BDC","CF"]) 
 # qqnorm(BC_test2[BC_test2$Session=="CON","CF"]);qqline(BC_test2[BC_test2$Session=="CON","CF"]) 
 
-model<-lme(CF~Session, data=BC_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-car::Anova(model)
+
 a<-
   t.test(BC_test2[BC_test2$Session=="CON","CF"], BC_test2[BC_test2$Session=="BDC","CF"], paired=FALSE)
 
@@ -2537,7 +3280,7 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # qqnorm(BC_test2[BC_test2$Session=="CON","FCSA"]);qqline(BC_test2[BC_test2$Session=="CON","FCSA"]) 
 
 a<-
-  wilcox.test(BC_test2[BC_test2$Session=="BDC","FCSA"],test2[test2$Session=="CON","FCSA"],paired=F)
+  wilcox.test(BC_test2[BC_test2$Session=="BDC","FCSA"],BC_test2[BC_test2$Session=="CON","FCSA"],paired=F)
 
 
 BC_pvals["CON-BDC","FCSA"]<-a$p.value
@@ -2628,7 +3371,6 @@ VO2_v_SDH_BC<-
                     labels=c("BDC"="PRE-Bed Rest","CON"="CON"))+
   scale_colour_manual(values = c("BDC"="white","CON"="white"),
                       labels=c("BDC"="PRE-Bed Rest","CON"="CON"))+
-  # geom_smooth(data=plot_data[plot_data$Session=="BDC",],method="lm", se=FALSE, linetype= "solid",fill="white",colour="black", size=2)+
   geom_smooth(data=plot_data[plot_data$Session=="CON",],method="lm",formula = y~x, se=FALSE, linetype= "solid",fill="white",colour="black", size=2, fullrange=F)+
   xlab(expression(atop("SDH Activity", "(\U0394"~A[660]*~mu*m^-1*""*~s^-1*~10^-5*")")))+
   ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
@@ -2825,7 +3567,8 @@ ggsave(plot=CF_v_FCSA_BC,
        device="png",  width = 20, height = 16, units = "in")
 
 
-# Supplemental 2 ----------------------------------------------------------
+# Supplemental Figure 5 ----------------------------------------------------------
+
 
 # Peak Power --------------------------------------------------------------
 # Stats -------------------------------------------------------------------
@@ -2959,22 +3702,21 @@ ggsave(plot=Power_b,
 # GET (% of VO2 max) ------------------------------------------------------
 # Stats -------------------------------------------------------------------
 
-# mean(data[data$Session=="BDC","GET_perc"],na.rm=TRUE); sd(data[data$Session=="BDC","GET_perc"],na.rm=TRUE)
-# mean(data[data$Session=="HDT55","GET_perc"],na.rm=TRUE);sd(data[data$Session=="HDT55","GET_perc"],na.rm=TRUE)
-# mean(data[data$Session=="CON","GET_perc"],na.rm=TRUE);sd(data[data$Session=="CON","GET_perc"],na.rm=TRUE)
-# mean(data[data$Session=="LC","GET_perc"],na.rm=TRUE);sd(data[data$Session=="LC","GET_perc"],na.rm=TRUE)
-# mean(data[data$Session=="ME","GET_perc"],na.rm=TRUE);sd(data[data$Session=="ME","GET_perc"],na.rm=TRUE)
+mean(data[data$Session=="BDC","GET_perc"],na.rm=TRUE); sd(data[data$Session=="BDC","GET_perc"],na.rm=TRUE)
+mean(data[data$Session=="HDT55","GET_perc"],na.rm=TRUE);sd(data[data$Session=="HDT55","GET_perc"],na.rm=TRUE)
+mean(data[data$Session=="CON","GET_perc"],na.rm=TRUE);sd(data[data$Session=="CON","GET_perc"],na.rm=TRUE)
+mean(data[data$Session=="LC","GET_perc"],na.rm=TRUE);sd(data[data$Session=="LC","GET_perc"],na.rm=TRUE)
+mean(data[data$Session=="ME","GET_perc"],na.rm=TRUE);sd(data[data$Session=="ME","GET_perc"],na.rm=TRUE)
 
 remove<-data[is.na(data$GET_perc)==TRUE ,"Subject"]
-# remove<-data[is.na(data$GET_perc)==TRUE | data$Subject=="H","Subject"]
 remove2<-c("P110117","P110118","P110127")
 test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
-# qqnorm(test2[test2$Session=="BDC","GET_perc"]);qqline(test2[test2$Session=="BDC","GET_perc"])
-# qqnorm(test2[test2$Session=="HDT55","GET_perc"]);qqline(test2[test2$Session=="HDT55","GET_perc"])
-# qqnorm(test2[test2$Session=="CON","GET_perc"]);qqline(test2[test2$Session=="CON","GET_perc"])
-# qqnorm(test2[test2$Session=="LC","GET_perc"]);qqline(test2[test2$Session=="LC","GET_perc"])
-# qqnorm(test2[test2$Session=="ME","GET_perc"]);qqline(test2[test2$Session=="ME","GET_perc"])
+qqnorm(test2[test2$Session=="BDC","GET_perc"]);qqline(test2[test2$Session=="BDC","GET_perc"])
+qqnorm(test2[test2$Session=="HDT55","GET_perc"]);qqline(test2[test2$Session=="HDT55","GET_perc"])
+qqnorm(test2[test2$Session=="CON","GET_perc"]);qqline(test2[test2$Session=="CON","GET_perc"])
+qqnorm(test2[test2$Session=="LC","GET_perc"]);qqline(test2[test2$Session=="LC","GET_perc"])
+qqnorm(test2[test2$Session=="ME","GET_perc"]);qqline(test2[test2$Session=="ME","GET_perc"])
 
 
 a<-kruskal.test(GET_perc~Session, test2[test2$Group=="POST-VIRAL",])
@@ -3102,6 +3844,8 @@ GET_perc_b<-
 ggsave(plot=GET_perc_b,
        filename = paste(output_folder,"/GET_perc_b_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
+
+
 # VE/VO2 max --------------------------------------------------------------
 
 # Stats -------------------------------------------------------------------
@@ -3124,7 +3868,7 @@ test2<-test[!test$Subject %in% remove ,]
 
 
 model <-lme(EqO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","EqO2_max"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -3133,9 +3877,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","EqO2_max"]<-b$p
-# all_pvals["CON-ME","EqO2_max"]<-a$p.adj[2]
-# all_pvals["CON-LC","EqO2_max"]<-a$p.adj[1]
-# all_pvals["LC-ME","EqO2_max"]<-a$p.adj[3]
 all_pvals["BED_REST_test","EqO2_max"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","EqO2_max"]<-"anova_no_post_hoc"
 
@@ -3262,7 +4003,7 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
 model <-lme(VE_VCO2_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","VE_VCO2_slope"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -3271,9 +4012,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","VE_VCO2_slope"]<-b$p
-# all_pvals["CON-ME","VE_VCO2_slope"]<-a$p.adj[2]
-# all_pvals["CON-LC","VE_VCO2_slope"]<-a$p.adj[1]
-# all_pvals["LC-ME","VE_VCO2_slope"]<-a$p.adj[3]
 all_pvals["BED_REST_test","VE_VCO2_slope"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","VE_VCO2_slope"]<-"anova_no_post_hoc"
 
@@ -3386,7 +4124,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","O2_pulse"]);qqline(test2[test2$Session=="ME","O2_pulse"])
 
 model <-lme(O2_pulse~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","O2_pulse"]<-a$`Pr(>Chisq)`
 
 # post-hoc testing 
@@ -3497,6 +4235,7 @@ O2_pulse_b<-
   )+
   guides(y=guide_axis(cap="upper"))
 
+O2_pulse_b
 
 ggsave(plot=O2_pulse_b,
        filename = paste(output_folder,"/O2_pulse_b_",date,".png", sep = ""),
@@ -3522,7 +4261,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","HR_max"]);qqline(test2[test2$Session=="ME","HR_max"])
 
 model <-lme(HR_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","HR_max"]<-a$`Pr(>Chisq)`
 
 
@@ -3530,9 +4269,6 @@ b<-
   wilcox.test(test2[test2$Session=="BDC","HR_max"], test2[test2$Session=="HDT55","HR_max"],paired=TRUE)
 
 all_pvals["BDC-HDT55","HR_max"]<-b$p.value
-# all_pvals["CON-ME","HR_max"]<-a$p.adj[2]
-# all_pvals["CON-LC","HR_max"]<-a$p.adj[1]
-# all_pvals["LC-ME","HR_max"]<-a$p.adj[3]
 all_pvals["BED_REST_test","HR_max"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","HR_max"]<-"anova_no_post_hoc"
 
@@ -3543,8 +4279,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
   "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -3676,9 +4410,6 @@ b<-
   wilcox.test(test2[test2$Session=="BDC","AHRR"], test2[test2$Session=="HDT55","AHRR"],paired=TRUE)
 
 all_pvals["BDC-HDT55","AHRR"]<-b$p.value
-# all_pvals["CON-ME","AHRR"]<-a$p.value[2]
-# all_pvals["CON-LC","AHRR"]<-a$p.value[1]
-# all_pvals["LC-ME","AHRR"]<-a$p.value[4]
 all_pvals["BED_REST_test","AHRR"]<-"wilcoxon"
 all_pvals["POST_VIRAL_test","AHRR"]<-"kruskal_no_post_hoc"
 
@@ -3689,8 +4420,7 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55",paste(format(round(b$p.value,3), drop0trailing=F)),"BED REST",
   "CON","ME",paste(round(a$p.value,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
+
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -3795,7 +4525,7 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
 model <-lme(VO2_HR_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","VO2_HR_slope"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -3933,7 +4663,7 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 
 model <-lme(VE_VCO2_slope_submax~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","VE_VCO2_slope_submax"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -4068,7 +4798,7 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","HR_rest"]);qqline(test2[test2$Session=="ME","HR_rest"])
 
 model <-lme(HR_rest~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","HR_rest"]<-a$`Pr(>Chisq)`
 # post-hoc testing 
 a<-
@@ -4194,9 +4924,308 @@ ggsave(plot=HR_rest_b,
 
 
 
+# Supplemental Figure 6 ---------------------------------------------------
 
-# Supplemental 4 ----------------------------------------------------------
 
+
+# VO2 % of predicted Wasserman ------------------------------------------------------
+
+# 
+# mean(data[data$Session=="BDC","VO2_perc_pred_wasserman"],na.rm=TRUE); sd(data[data$Session=="BDC","VO2_perc_pred_wasserman"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","VO2_perc_pred_wasserman"],na.rm=TRUE);sd(data[data$Session=="HDT55","VO2_perc_pred_wasserman"],na.rm=TRUE)
+# mean(data[data$Session=="CON","VO2_perc_pred_wasserman"],na.rm=TRUE);sd(data[data$Session=="CON","VO2_perc_pred_wasserman"],na.rm=TRUE)
+# mean(data[data$Session=="LC","VO2_perc_pred_wasserman"],na.rm=TRUE);sd(data[data$Session=="LC","VO2_perc_pred_wasserman"],na.rm=TRUE)
+# mean(data[data$Session=="ME","VO2_perc_pred_wasserman"],na.rm=TRUE);sd(data[data$Session=="ME","VO2_perc_pred_wasserman"],na.rm=TRUE)
+
+
+remove<-data[is.na(data$VO2_perc_pred_wasserman)==TRUE,"Subject"]
+test2<-test[!test$Subject %in% remove ,]
+
+# qqnorm(test2[test2$Session=="BDC","VO2_perc_pred_wasserman"]);qqline(test2[test2$Session=="BDC","VO2_perc_pred_wasserman"])
+# qqnorm(test2[test2$Session=="HDT55","VO2_perc_pred_wasserman"]);qqline(test2[test2$Session=="HDT55","VO2_perc_pred_wasserman"])
+# qqnorm(test2[test2$Session=="CON","VO2_perc_pred_wasserman"]);qqline(test2[test2$Session=="CON","VO2_perc_pred_wasserman"])
+# qqnorm(test2[test2$Session=="LC","VO2_perc_pred_wasserman"]);qqline(test2[test2$Session=="LC","VO2_perc_pred_wasserman"])
+# qqnorm(test2[test2$Session=="ME","VO2_perc_pred_wasserman"]);qqline(test2[test2$Session=="ME","VO2_perc_pred_wasserman"])
+
+a<-kruskal.test(VO2_perc_pred_wasserman~Session, data=test2[test2$Group=="POST-VIRAL",])
+all_pvals["ANOVA","VO2_perc_pred_wasserman"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","VO2_perc_pred_wasserman"], test2[test2$Group=="POST-VIRAL","Session"], paired=FALSE, p.adjust.method="hommel")
+
+
+b<-
+  t_test(test2[test2$Group=="BED REST",], VO2_perc_pred_wasserman~Session, paired=TRUE)
+
+all_pvals["BDC-HDT55","VO2_perc_pred_wasserman"]<-b$p
+all_pvals["CON-ME","VO2_perc_pred_wasserman"]<-a$p.value[2]
+all_pvals["CON-LC","VO2_perc_pred_wasserman"]<-a$p.value[1]
+all_pvals["LC-ME","VO2_perc_pred_wasserman"]<-a$p.value[4]
+all_pvals["BED_REST_test","VO2_perc_pred_wasserman"]<-"paired_t_test"
+all_pvals["POST_VIRAL_test","VO2_perc_pred_wasserman"]<-"kruskal_wilcoxon_post_hoc"
+
+# Make graph --------------------------------------------------------------
+
+stat_test <- tibble::tribble(
+  ~group1, ~group2, ~p.adj, ~Group,
+  "BDC","HDT55","p<0.001","BED REST",
+  "CON","ME","p<0.001","POST-VIRAL",
+  "CON","LC","p<0.001","POST-VIRAL",
+  "LC","ME",paste(format(round(a$p.value[4],3), drop0trailing=F)),"POST-VIRAL")
+
+plot_data<-plot_data<-data[!data$Subject %in% remove,]
+
+
+VO2_perc_pred_WASSERMAN_a<-
+  ggplot(plot_data[plot_data$Group=="BED REST",], 
+         aes(
+           x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
+           y=VO2_perc_pred_wasserman*100, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(bquote(atop("V\U0307" ~O[2]*"max","(% of Wasserman predicted)")))+
+  scale_y_continuous(limits=c(0,210), breaks=c(0,40,80,120,160,200),expand=c(0,0))+
+  scale_y_cut(breaks=c(30),
+              space=c(0.5),
+              scales=c(40),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
+  scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(160), bracket.size=2,
+                     label.size=14,tip.length = 0.02,
+                     linetype="solid", inherit.aes=FALSE)+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=VO2_perc_pred_WASSERMAN_a,
+       filename = paste(output_folder,"/VO2_perc_pred_WASSERMAN_a_",date,".png", sep = ""),
+       device="png",  width = 9, height = 14, units = "in")
+
+VO2_perc_pred_WASSERMAN_b<-
+  ggplot(plot_data[plot_data$Group=="POST-VIRAL",], 
+         aes(
+           x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
+           y=VO2_perc_pred_wasserman*100, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(bquote(atop("V\U0307" ~O[2]*"max","(% of Wasserman predicted)")))+
+  scale_y_continuous(limits=c(0,210), breaks=c(0,40,80,120,160,200),expand=c(0,0))+
+  scale_y_cut(breaks=c(30),
+              space=c(0.5),
+              scales=c(40),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
+  scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(200), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(185), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(130), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=VO2_perc_pred_WASSERMAN_b,
+       filename = paste(output_folder,"/VO2_perc_pred_WASSERMAN_b_",date,".png", sep = ""),
+       device="png",  width = 9, height = 14, units = "in")
+
+
+
+
+# Percent Predicted FRIEND equation ---------------------------------------
+
+
+# VO2 % of predicted FRIEND ------------------------------------------------------
+
+
+# mean(data[data$Session=="BDC","VO2_perc_pred"],na.rm=TRUE); sd(data[data$Session=="BDC","VO2_perc_pred"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","VO2_perc_pred"],na.rm=TRUE);sd(data[data$Session=="HDT55","VO2_perc_pred"],na.rm=TRUE)
+# mean(data[data$Session=="CON","VO2_perc_pred"],na.rm=TRUE);sd(data[data$Session=="CON","VO2_perc_pred"],na.rm=TRUE)
+# mean(data[data$Session=="LC","VO2_perc_pred"],na.rm=TRUE);sd(data[data$Session=="LC","VO2_perc_pred"],na.rm=TRUE)
+# mean(data[data$Session=="ME","VO2_perc_pred"],na.rm=TRUE);sd(data[data$Session=="ME","VO2_perc_pred"],na.rm=TRUE)
+
+
+remove<-data[is.na(data$VO2_perc_pred)==TRUE,"Subject"]
+test2<-test[!test$Subject %in% remove ,]
+
+# qqnorm(test2[test2$Session=="BDC","VO2_perc_pred"]);qqline(test2[test2$Session=="BDC","VO2_perc_pred"])
+# qqnorm(test2[test2$Session=="HDT55","VO2_perc_pred"]);qqline(test2[test2$Session=="HDT55","VO2_perc_pred"])
+# qqnorm(test2[test2$Session=="CON","VO2_perc_pred"]);qqline(test2[test2$Session=="CON","VO2_perc_pred"])
+# qqnorm(test2[test2$Session=="LC","VO2_perc_pred"]);qqline(test2[test2$Session=="LC","VO2_perc_pred"])
+# qqnorm(test2[test2$Session=="ME","VO2_perc_pred"]);qqline(test2[test2$Session=="ME","VO2_perc_pred"])
+
+
+
+a<-kruskal.test(VO2_perc_pred~Session, data=test2[test2$Group=="POST-VIRAL",])
+all_pvals["ANOVA","VO2_perc_pred"]<-a$p.value
+
+a<-
+  pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","VO2_perc_pred"], test2[test2$Group=="POST-VIRAL","Session"], paired=FALSE, p.adjust.method="hommel")
+
+b<-
+  wilcox.test(test2[test2$Session=="BDC","VO2_perc_pred"],test2[test2$Session=="HDT55","VO2_perc_pred"], paired=TRUE)
+
+all_pvals["BDC-HDT55","VO2_perc_pred"]<-b$p.value
+all_pvals["CON-ME","VO2_perc_pred"]<-a$p.value[2]
+all_pvals["CON-LC","VO2_perc_pred"]<-a$p.value[1]
+all_pvals["LC-ME","VO2_perc_pred"]<-a$p.value[4]
+all_pvals["BED_REST_test","VO2_perc_pred"]<-"wilcoxon"
+all_pvals["POST_VIRAL_test","VO2_perc_pred"]<-"kruskal_wilcoxon_post_hoc"
+
+# Make graph --------------------------------------------------------------
+
+stat_test <- tibble::tribble(
+  ~group1, ~group2, ~p.adj, ~Group,
+  "BDC","HDT55","p<0.001","BED REST",
+  "CON","ME","p<0.001","POST-VIRAL",
+  "CON","LC","p<0.001","POST-VIRAL",
+  "LC","ME",paste(format(round(a$p.value[4],3), drop0trailing=F)),"POST-VIRAL")
+
+plot_data<-plot_data<-data[!data$Subject %in% remove,]
+
+
+VO2_perc_pred_FRIEND_a<-
+  ggplot(plot_data[plot_data$Group=="BED REST",], 
+         aes(
+           x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
+           y=VO2_perc_pred*100, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(bquote(atop("V\U0307" ~O[2]*"max","(% of FRIEND predicted)")))+
+  scale_y_continuous(limits=c(0,210), breaks=c(0,40,80,120,160,200),expand=c(0,0))+
+  scale_y_cut(breaks=c(30),
+              space=c(0.5),
+              scales=c(40),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
+  scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(140), bracket.size=2,
+                     label.size=14,tip.length = 0.02,
+                     linetype="solid", inherit.aes=FALSE)+
+  scale_y_cut(breaks=c(30),
+              space=c(0.5),
+              scales=c(40),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=VO2_perc_pred_FRIEND_a,
+       filename = paste(output_folder,"/VO2_perc_pred_FRIEND_a_",date,".png", sep = ""),
+       device="png",  width = 9, height = 14, units = "in")
+
+VO2_perc_pred_FRIEND_b<-
+  ggplot(plot_data[plot_data$Group=="POST-VIRAL",], 
+         aes(
+           x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
+           y=VO2_perc_pred*100, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(bquote(atop("V\U0307" ~O[2]*"max","(% of FRIEND predicted)")))+
+  scale_y_continuous(limits=c(0,210), breaks=c(0,40,80,120,160,200),expand=c(0,0))+
+  scale_y_cut(breaks=c(30),
+              space=c(0.5),
+              scales=c(40),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
+  scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(170), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(155), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(120), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 15, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=VO2_perc_pred_FRIEND_b,
+       filename = paste(output_folder,"/VO2_perc_pred_FRIEND_b_",date,".png", sep = ""),
+       device="png",  width = 9, height = 14, units = "in")
+
+
+# Supplemental Figure 8 ----------------------------------------------------------
 
 # Oxphos normalized to SDH ------------------------------------------------
 
@@ -4372,9 +5401,6 @@ b<-
   wilcox.test(test2[test2$Session=="BDC","E_L_coup"],test2[test2$Session=="HDT55","E_L_coup"],paired=TRUE)
 
 all_pvals["BDC-HDT55","E_L_coup"]<-b$p.value
-# all_pvals["CON-ME","E_L_coup"]<-a$p.value[2]
-# all_pvals["CON-LC","E_L_coup"]<-a$p.value[1]
-# all_pvals["LC-ME","E_L_coup"]<-a$p.value[4]
 all_pvals["BED_REST_test","E_L_coup"]<-"wilcoxon"
 all_pvals["POST_VIRAL_test","E_L_coup"]<-"kruskal_no_post_hoc"
 
@@ -4385,8 +5411,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55",paste(format(round(b$p.value,3), drop0trailing=F)),"BED REST",
   "CON","ME",paste(round(a$p.value,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -4399,7 +5423,7 @@ E_L_coupling_efficiency_a<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(bquote(atop("E/L Coupling Efficiency (AU)")))+
+  ylab(bquote(atop("E/L Coupling Efficiency (%)")))+
   scale_y_continuous(limits=c(0,110), breaks=c(0,60,70,80,90,100),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(100), bracket.size=2,
@@ -4445,7 +5469,7 @@ E_L_coupling_efficiency_b<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="BED REST","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(bquote(atop("E/L Coupling Efficiency (AU)")))+
+  ylab(bquote(atop("E/L Coupling Efficiency (%)")))+
   scale_y_continuous(limits=c(0,110), breaks=c(0,60,70,80,90,100),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(100), bracket.size=2,
@@ -4516,9 +5540,6 @@ b<-
   wilcox.test(test2[test2$Session=="BDC","PS_PNS"],test2[test2$Session=="HDT55","PS_PNS"],paired=TRUE)
 
 all_pvals["BDC-HDT55","PS_PNS"]<-b$p.value
-# all_pvals["CON-ME","PS_PNS"]<-a$p.value[2]
-# all_pvals["CON-LC","PS_PNS"]<-a$p.value[1]
-# all_pvals["LC-ME","PS_PNS"]<-a$p.value[4]
 all_pvals["BED_REST_test","PS_PNS"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","PS_PNS"]<-"kruskal_no_post_hoc"
 
@@ -4529,8 +5550,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55",paste(format(round(b$p.value,3), drop0trailing=F)),"BED REST",
   "CON","ME",paste(round(a$p.value,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -4543,7 +5562,7 @@ PS_PNS_a<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(bquote("PS/PNS (AU)"))+
+  ylab(bquote(atop("Normalized Succinate-linked","Respriation (%)")))+
   scale_y_continuous(limits=c(0,110), breaks=c(0,20,40,60,80,100),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(80), bracket.size=2,
@@ -4556,7 +5575,6 @@ PS_PNS_a<-
               expand = expansion(mult = c(0.02,0.05)) )+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
-        # axis.ticks = element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
         axis.ticks.x =element_blank(),
         text=element_text(size=base_size, family = "Arial"),
@@ -4590,7 +5608,7 @@ PS_PNS_b<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="BED REST","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(bquote("PS/PNS (AU)"))+
+  ylab(bquote(atop("Normalized Succinate-linked","Respriation (%)")))+
   scale_y_continuous(limits=c(0,110), breaks=c(0,20,40,60,80,100),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(100), bracket.size=2,
@@ -4674,8 +5692,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55",paste(format(round(b$p.value,3), drop0trailing=F)),"BED REST",
   "CON","ME",paste(round(a$p.value,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -4688,7 +5704,7 @@ PN_PNS_a<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(bquote(atop("PN/PNS (AU)")))+
+  ylab(bquote(atop("Normalized NADH-linked","Respriation (%)")))+
   scale_y_continuous(limits=c(0,110), breaks=seq(0,100,20),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(80), bracket.size=2,
@@ -4729,7 +5745,7 @@ PN_PNS_b<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="BED REST","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(bquote(atop("PN/PNS (AU)")))+
+  ylab(bquote(atop("Normalized NADH-linked","Respriation (%)")))+
   scale_y_continuous(limits=c(0,110), breaks=seq(0,100,20),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(100), bracket.size=2,
@@ -4761,7 +5777,7 @@ ggsave(plot=PN_PNS_b,
        device="png",  width = 9, height = 14, units = "in")
 
 
-# Supplemental 5 ----------------------------------------------------------
+# Supplemental Figure 9 ----------------------------------------------------------
 
 # capillary size ----------------------------------------------------------
 
@@ -4795,9 +5811,6 @@ b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c
 
 
 all_pvals["BDC-HDT55","Cap_size"]<-b$p
-# all_pvals["CON-ME","Cap_size"]<-a$p.value[2]
-# all_pvals["CON-LC","Cap_size"]<-a$p.value[1]
-# all_pvals["LC-ME","Cap_size"]<-a$p.value[4]
 all_pvals["BED_REST_test","Cap_size"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","Cap_size"]<-"kruskal_no_post_hoc"
 
@@ -4809,8 +5822,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55",paste("p<0.001"),"BED REST",
   "CON","ME",paste(round(a$p.value,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -4895,8 +5906,7 @@ ggsave(plot=Cap_size_b,
        device="png",  width = 9, height = 14, units = "in")
 
 
-
-# Supplemental 6 ----------------------------------------------------------
+# Supplemental Figure 10 ----------------------------------------------------------
 
 # Myoglobin ---------------------------------------------------------------
 
@@ -4932,9 +5942,6 @@ b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c
 
 
 all_pvals["BDC-HDT55","Myoglobin"]<-b$p
-# all_pvals["CON-ME","Myoglobin"]<-a$p.adj[2]
-# all_pvals["CON-LC","Myoglobin"]<-a$p.adj[1]
-# all_pvals["LC-ME","Myoglobin"]<-a$p.adj[3]
 all_pvals["BED_REST_test","Myoglobin"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","Myoglobin"]<-"kruskal_no_post_hoc"
 
@@ -4945,8 +5952,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55",paste(format(round(b$p,3), drop0trailing=F)),"BED REST",
   "CON","ME",paste(round(a$p.value,3)),"POST-VIRAL")
-# "CON","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"POST-VIRAL",
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -5040,7 +6045,186 @@ ggsave(plot=Myo_b,
        device="png",  width = 9, height = 14, units = "in")
 
 
-# Supplemental 7 ----------------------------------------------------------
+# Supplemental Figure 11 ----------------------------------------------
+
+
+
+# Stats -------------------------------------------------------------------
+mean(data[data$Session=="BDC","TypeI_CF"],na.rm=TRUE); sd(data[data$Session=="BDC","TypeI_CF"],na.rm=TRUE)
+mean(data[data$Session=="HDT55","TypeI_CF"],na.rm=TRUE);sd(data[data$Session=="HDT55","TypeI_CF"],na.rm=TRUE)
+mean(data[data$Session=="CON","TypeI_CF"],na.rm=TRUE);sd(data[data$Session=="CON","TypeI_CF"],na.rm=TRUE)
+mean(data[data$Session=="LC","TypeI_CF"],na.rm=TRUE);sd(data[data$Session=="LC","TypeI_CF"],na.rm=TRUE)
+mean(data[data$Session=="ME","TypeI_CF"],na.rm=TRUE);sd(data[data$Session=="ME","TypeI_CF"],na.rm=TRUE)
+
+
+test2<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx",sheet="FT_CF"))
+
+remove<-test2[is.na(test2$CF)==TRUE ,"Subject"]
+
+test2<-test2[!test2$Subject %in% remove ,1:5]
+
+plot_data<-test2
+
+test3<-as.data.frame(box_cox_transform(test2))
+
+test2$CF<-test3$CF
+
+test2<-test2 %>%
+  mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
+
+plot_data<-plot_data %>%
+  mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
+
+qqnorm(test2[test2$Session=="BDC" & test2$Fibre_type=="I","CF"]);qqline(test2[test2$Session=="BDC" & test2$Fibre_type=="I","CF"])
+qqnorm(test2[test2$Session=="HDT55"& test2$Fibre_type=="I","CF"]);qqline(test2[test2$Session=="HDT55"& test2$Fibre_type=="I","CF"])
+qqnorm(test2[test2$Session=="CON"& test2$Fibre_type=="I","CF"]);qqline(test2[test2$Session=="CON"& test2$Fibre_type=="I","CF"])
+qqnorm(test2[test2$Session=="LC"& test2$Fibre_type=="I","CF"]);qqline(test2[test2$Session=="LC"& test2$Fibre_type=="I","CF"])
+qqnorm(test2[test2$Session=="ME"& test2$Fibre_type=="I","CF"]);qqline(test2[test2$Session=="ME"& test2$Fibre_type=="I","CF"])
+
+qqnorm(test2[test2$Session=="BDC" & test2$Fibre_type=="II","CF"]);qqline(test2[test2$Session=="BDC" & test2$Fibre_type=="II","CF"])
+qqnorm(test2[test2$Session=="HDT55"& test2$Fibre_type=="II","CF"]);qqline(test2[test2$Session=="HDT55"& test2$Fibre_type=="II","CF"])
+qqnorm(test2[test2$Session=="CON"& test2$Fibre_type=="II","CF"]);qqline(test2[test2$Session=="CON"& test2$Fibre_type=="II","CF"])
+qqnorm(test2[test2$Session=="LC"& test2$Fibre_type=="II","CF"]);qqline(test2[test2$Session=="LC"& test2$Fibre_type=="II","CF"])
+qqnorm(test2[test2$Session=="ME"& test2$Fibre_type=="II","CF"]);qqline(test2[test2$Session=="ME"& test2$Fibre_type=="II","CF"])
+
+
+test2$Fibre_type<-factor(test2$Fibre_type)
+test2$Session<-factor(test2$Session)
+
+model1 <- art(CF ~ Session*Fibre_type + (1|Subject), data=test2[test2$Group=="POST-VIRAL",])
+
+a<-anova(model1, type="II")
+
+as.data.frame(contrast(emmeans(artlm.con(model1, "Session"), ~ Session), method = "pairwise"))
+
+
+model2 <-art(CF ~ Session*Fibre_type+(1|Subject), data=test2[test2$Group=="BED REST",])
+
+
+b<-anova(model2, type="II")
+
+
+all_pvals["BDC-HDT55","CF_fibre_type_time_effect"]<-b$`Pr(>F)`[1]
+all_pvals["BDC-HDT55","CF_fibre_type_fibre_type_effect"]<-b$`Pr(>F)`[2]
+all_pvals["BDC-HDT55","CF_fibre_type_fibre_interaction_effect"]<-b$`Pr(>F)`[3]
+
+
+all_pvals["POST-VIRAL","CF_fibre_type_group_effect"]<-a$`Pr(>F)`[1]
+all_pvals["POST-VIRAL","CF_fibre_type_fibre_type_effect"]<-a$`Pr(>F)`[2]
+all_pvals["POST-VIRAL","CF_fibre_type_fibre_interaction_effect"]<-a$`Pr(>F)`[3]
+
+all_pvals["POST_VIRAL_test","CF_fibre_type_fibre_interaction_effect"]<-"aligned_rank_transform_pairwise_contrast_post_hoc"
+all_pvals["BED_REST_test","CF_fibre_type_fibre_interaction_effect"]<-"aligned_rank_transform_no_post_hoc"
+
+all_pvals["CON-ME","CF_fibre_type_group_effect"]<- as.data.frame(contrast(emmeans(artlm.con(model1, "Session"), ~ Session), method = "pairwise"))[2,6]
+all_pvals["CON-LC","CF_fibre_type_group_effect"]<- as.data.frame(contrast(emmeans(artlm.con(model1, "Session"), ~ Session), method = "pairwise"))[1,6]
+all_pvals["LC-ME","CF_fibre_type_group_effect"]<- as.data.frame(contrast(emmeans(artlm.con(model1, "Session"), ~ Session), method = "pairwise"))[3,6]
+
+
+
+# Make graph --------------------------------------------------------------
+
+
+
+Fibre_type_CF_a<-
+  ggplot(plot_data[plot_data$Group=="BED REST",], 
+         aes(
+           x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
+           y=CF, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Capillary:Fiber Ratio"))+
+  scale_y_continuous(limits=c(0,4.5), breaks=seq(0,4,1),expand=c(0,0))+
+  scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90,hjust=0.25, margin = margin(t = 0, r = 0, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~Fibre_type, labeller=as_labeller(c("I"="Type I","II"="Type II")))+
+  geom_label(data = data.frame(x = 1.5,
+                               y = 4,
+                               Fibre_type = "II",
+                               Session="HDT55",
+                               label = paste("Time: p=",format(round(b$`Pr(>F)`[1],3), drop0trailing=F),"\n",
+                                             "Fibre Type: p=",format(round(b$`Pr(>F)`[2],3), drop0trailing=F),"\n",
+                                             "Interaction: p=",format(round(b$`Pr(>F)`[3],3), drop0trailing=F),
+                                             sep="")),
+             aes(label = label, group=Session,x=x,y=y), size = 10, label.size = 2,inherit.aes=F)+
+  
+  guides(y=guide_axis(cap="upper"))
+
+
+
+ggsave(plot=Fibre_type_CF_a,
+       filename = paste(output_folder,"/Fibre_type_CF_a_",date,".png", sep = ""),
+       device="png",  width = 12, height = 14, units = "in")
+
+Fibre_type_CF_b<-
+  ggplot(plot_data[plot_data$Group=="POST-VIRAL",], 
+         aes(
+           x=fct_relevel(Session, "BDC","HDT55","CON","LC","ME"),
+           y=CF, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="BED REST","Session"])))+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Capillary:Fiber Ratio"))+
+  scale_y_continuous(limits=c(0,4.5), breaks=seq(0,4,1),expand=c(0,0))+
+  scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
+  geom_label(data = data.frame(x = "LC",
+                               y = 4,
+                               Fibre_type = "II",
+                               Session="LC",
+                               label = paste("Group: p<0.001","\n",
+                                             "Fibre Type: p<0.001","\n",
+                                             "Interaction: p=",format(round(a$`Pr(>F)`[3],3), drop0trailing=F),
+                                             sep="")),
+             aes(label = label, group=Session,x=x,y=y), size = 10,label.size = 2, inherit.aes=F)+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90,hjust=0.25, margin = margin(t = 0, r = 0, b = 1.5, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~Fibre_type, labeller=as_labeller(c("I"="Type I","II"="Type II")))+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=Fibre_type_CF_b,
+       filename = paste(output_folder,"/Fibre_type_CF_b_",date,".png", sep = ""),
+       device="png",  width = 12, height = 14, units = "in")
+
+
+
+
+
+# Supplemental Figure 12 ----------------------------------------------------------
 
 # HDT55 v LC v ME ---------------------------------------------------------
 
@@ -5102,39 +6286,42 @@ wilcox.test(Steps~Session, test2[test2$Session!="HDT55",])
 
 
 # HLM VO2 -----------------------------------------------------------------
-remove<-HLM_data[is.na(HLM_data$VO2_abs)==TRUE   ,"Subject"]
+remove<-HLM_data[is.na(HLM_data$VO2_rel)==TRUE   ,"Subject"]
 HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
-# shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","VO2_abs"])
-# shapiro.test(HLM_test2[HLM_test2$Session=="LC","VO2_abs"])
-# shapiro.test(HLM_test2[HLM_test2$Session=="ME","VO2_abs"])
-# qqnorm(HLM_test2[HLM_test2$Session=="HDT55","VO2_abs"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","VO2_rel"])
-# qqnorm(HLM_test2[HLM_test2$Session=="LC","VO2_abs"]);qqline(HLM_test2[HLM_test2$Session=="LC","VO2_rel"])
-# qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_abs"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_rel"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","VO2_rel"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="LC","VO2_rel"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="ME","VO2_rel"])
+# qqnorm(HLM_test2[HLM_test2$Session=="HDT55","VO2_rel"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","VO2_rel"])
+# qqnorm(HLM_test2[HLM_test2$Session=="LC","VO2_rel"]);qqline(HLM_test2[HLM_test2$Session=="LC","VO2_rel"])
+# qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_rel"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_rel"])
 
 a<-
-  kruskal.test(VO2_abs~Session, data=HLM_test)
+  kruskal.test(VO2_rel~Session, data=HLM_test)
 
-HLM_pvals["ANOVA","VO2_abs"]<-a$p.value
+HLM_pvals["ANOVA","VO2_rel"]<-a$p.value
 
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
-  # "HDT55","LC",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"BED REST",
   "HDT55","ME",paste(format(round(a$p.value[1],3), drop0trailing=F)),"POST-VIRAL")
-# "LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
 
 
 plot_data<-HLM_data[!HLM_data$Subject %in% remove,]
 
 VO2_HLM<-
   ggplot(plot_data, 
-         aes(x=fct_relevel(Session,"HDT55","LC","ME"),y=VO2_abs, group=Session,fill=Session))+
+         aes(x=fct_relevel(Session,"HDT55","LC","ME"),y=VO2_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("V\U0307" ~O[2]*"max (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,4.5), breaks=seq(0,4,1),expand=c(0,0))+
+  ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
+  scale_y_continuous(limits=c(0,65), breaks=c(0,20,30,40,50,60),expand=c(0,0))+
+  scale_y_cut(breaks=c(10),
+              space=c(0.5),
+              scales=c(30),
+              which=c(1),
+              expand = expansion(mult = c(0.02,0.05)) )+
   scale_x_discrete(labels=c( "HDT55"="POST","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(4), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(50), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
@@ -5161,26 +6348,101 @@ ggsave(plot=VO2_HLM,
        filename = paste(output_folder,"/VO2_HLM_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
 
-# HLM GET -----------------------------------------------------------------
-remove<-HLM_data[is.na(HLM_data$GET)==TRUE   ,"Subject"]
-HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
-# shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","GET"])
-# shapiro.test(HLM_test2[HLM_test2$Session=="LC","GET"])  
-# shapiro.test(HLM_test2[HLM_test2$Session=="ME","GET"])
-# qqnorm(HLM_test2[HLM_test2$Session=="HDT55","GET"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","GET"])
-# qqnorm(HLM_test2[HLM_test2$Session=="LC","GET"]);qqline(HLM_test2[HLM_test2$Session=="LC","GET"])
-# qqnorm(HLM_test2[HLM_test2$Session=="ME","GET"]);qqline(HLM_test2[HLM_test2$Session=="ME","GET"])
 
-model<-lme(GET~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
-HLM_pvals["ANOVA","GET"]<-a$`Pr(>Chisq)`
+
+# HLM  FRIEND ---------------------------------------------------------------
+
+remove<-HLM_data[is.na(HLM_data$VO2_perc_pred)==TRUE   ,"Subject"]
+HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
+shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"])
+shapiro.test(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
+shapiro.test(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
+qqnorm(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"])
+qqnorm(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
+qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
+
+model<-lme(VO2_perc_pred~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+
+a<-anova(model)
 
 a<-
-  HLM_test2 %>% tukey_hsd(GET~Session)
+  HLM_test2 %>% tukey_hsd(VO2_perc_pred~Session)
 
-HLM_pvals["HDT55-ME","GET"]<-a$p.adj[2]
-HLM_pvals["HDT55-LC","GET"]<-a$p.adj[1]
-HLM_pvals["LC-ME","GET"]<-a$p.adj[3]
+
+
+stat_test <- tibble::tribble(
+  ~group1, ~group2, ~p.adj, ~Group,
+  "HDT55","LC",paste(format(round(a$p.adj[1],3), drop0trailing=F)),"BED REST",
+  "HDT55","ME",paste(format(round(a$p.adj[2],3), drop0trailing=F)),"POST-VIRAL",
+"LC","ME",paste(format(round(a$p.adj[3],3), drop0trailing=F)),"POST-VIRAL")
+
+
+plot_data<-HLM_data[!HLM_data$Subject %in% remove,]
+
+
+VO2_FRIEND_HLM<-
+  ggplot(plot_data, 
+         aes(x=fct_relevel(Session,"HDT55","LC","ME"),y=VO2_perc_pred*100, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+    scale_fill_manual(values = c("HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
+    ylab(bquote(atop("V\U0307" ~O[2]*"max","(% of FRIEND predicted)")))+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90, margin = margin(t = 0, r = 30, b = 0, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+    scale_y_continuous(limits=c(0,160), breaks=c(0,40,80,120),expand=c(0,0))+
+    scale_y_cut(breaks=c(30),
+                space=c(0.5),
+                scales=c(40),
+                which=c(1),
+                expand = expansion(mult = c(0.02,0.05)) )+
+  scale_x_discrete(labels=c( "HDT55"="POST","LC"="LC","ME"="ME"))+
+  stat_pvalue_manual(data=stat_test, label = "p.adj",y.position=c(110,130,120), bracket.size=2,
+                     label.size=14,tip.length = 0.02,
+                     linetype="solid", inherit.aes=FALSE)+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=VO2_FRIEND_HLM,
+       filename = paste(output_folder,"/VO2_FRIEND_HLM_",date,".png", sep = ""),
+       device="png",  width = 10, height = 14, units = "in")
+
+
+# HLM GET -----------------------------------------------------------------
+remove<-HLM_data[is.na(HLM_data$GET_rel)==TRUE   ,"Subject"]
+HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
+# shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","GET_rel"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="LC","GET_rel"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="ME","GET_rel"])
+# qqnorm(HLM_test2[HLM_test2$Session=="HDT55","GET_rel"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","GET_rel"])
+# qqnorm(HLM_test2[HLM_test2$Session=="LC","GET_rel"]);qqline(HLM_test2[HLM_test2$Session=="LC","GET_rel"])
+# qqnorm(HLM_test2[HLM_test2$Session=="ME","GET_rel"]);qqline(HLM_test2[HLM_test2$Session=="ME","GET_rel"])
+
+model<-lme(GET_rel~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+a<-Anova(model)
+HLM_pvals["ANOVA","GET_rel"]<-a$`Pr(>Chisq)`
+
+a<-
+  HLM_test2 %>% tukey_hsd(GET_rel~Session)
+
+
+HLM_pvals["HDT55-ME","GET_rel"]<-a$p.adj[2]
+HLM_pvals["HDT55-LC","GET_rel"]<-a$p.adj[1]
+HLM_pvals["LC-ME","GET_rel"]<-a$p.adj[3]
 
 
 stat_test <- tibble::tribble(
@@ -5194,20 +6456,20 @@ plot_data<-HLM_data[!HLM_data$Subject %in% remove,]
 
 GET_HLM<-
   ggplot(plot_data, 
-         aes(x=fct_relevel(Session,"HDT55","LC","ME"),y=GET, group=Session,fill=Session))+
+         aes(x=fct_relevel(Session,"HDT55","LC","ME"),y=GET_rel, group=Session,fill=Session))+
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("GET (L"~min^-1*")"))+
-  scale_y_continuous(limits=c(0,3.8), breaks=seq(0,3,1),expand=c(0,0))+
+  ylab(expression("GET (mL"~min^-1*~kg^-1*")"))+
+  scale_y_continuous(limits=c(0,50), breaks=c(0,10,20,30,40),expand=c(0,0))+
   scale_x_discrete(labels=c( "HDT55"="POST","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(3.6), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(40), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(3.2), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(36), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
-  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(2.8), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(32), bracket.size=2,
                      label.size=14,tip.length = 0.02,
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
@@ -5263,7 +6525,6 @@ stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "HDT55","LC",paste(format(round(a$p.value[1],3), drop0trailing=F)),"BED REST",
   "HDT55","ME",paste("p<0.001"),"POST-VIRAL",
-  # "HDT55","ME",paste(format(round(a$p.value[2],3), drop0trailing=F)),"POST-VIRAL",
   "LC","ME",paste(format(round(a$p.value[4],3), drop0trailing=F)),"POST-VIRAL")
 
 
@@ -5329,8 +6590,8 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 
 model<-lme(SDH~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
-HLM_pvals["ANOVA","SDH"]<-a$`Pr(>Chisq)`
+a<-anova(model)
+HLM_pvals["ANOVA","SDH"]<-a$`p-value`[2]
 a<-
   HLM_test2 %>% tukey_hsd(SDH~Session)
 HLM_pvals["HDT55-ME","SDH"]<-a$p.adj[2]
@@ -5465,6 +6726,9 @@ ggsave(plot=Oxphos_HLM,
 
 
 
+
+
+
 # HLM Cap : Fibre ---------------------------------------------------------
 remove<-HLM_data[is.na(HLM_data$CF)==TRUE   ,"Subject"]
 HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
@@ -5477,8 +6741,8 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 
 
 model<-lme(CF~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
-HLM_pvals["ANOVA","CF"]<-a$`Pr(>Chisq)`
+a<-anova(model)
+HLM_pvals["ANOVA","CF"]<-a$`p-value`[2]
 
 a<-
   HLM_test2 %>% tukey_hsd(CF~Session)
@@ -5664,8 +6928,6 @@ VO2_v_SDH_HLM<-
   scale_colour_manual(values = c("HDT55"="white","LC"="white","ME"="white"),
                       labels=c("HDT55"="POST\nBed Rest","LC"="LC", "ME"="ME"))+
   geom_smooth(data=plot_data[plot_data$Session=="HDT55",],method="lm",formula = y~x, se=FALSE, linetype= "solid",fill="white",colour="black", size=2, fullrange=F)+
-  # geom_smooth(data=plot_data[plot_data$Session=="LC",],method="lm", se=FALSE, linetype= "solid",fill="white",colour=colours3[3], size=2)+
-  # geom_smooth(data=plot_data[plot_data$Session=="ME",],method="lm", se=FALSE, linetype= "solid",fill="white",colour=colours3[4], size=2)+
   xlab(expression(atop("SDH Activity", "(\U0394"~A[660]*~mu*m^-1*""*~s^-1*~10^-5*")")))+
   ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
   scale_x_continuous(limits=c(0,2.2), breaks=seq(0.5,2.0,0.5), expand=c(0,0))+
@@ -5749,8 +7011,6 @@ VO2_v_oxphos_HLM<-
   scale_colour_manual(values = c("HDT55"="white","LC"="white","ME"="white"),
                       labels=c("HDT55"="POST\nBed Rest","LC"="LC", "ME"="ME"))+
   geom_smooth(data=plot_data[plot_data$Session=="HDT55",],method="lm", se=FALSE, linetype= "solid",fill="white",colour="black", size=2)+
-  # geom_smooth(data=plot_data[plot_data$Session=="LC",],method="lm", se=FALSE, linetype= "solid",fill="white",colour=colours3[3], size=2)+
-  # geom_smooth(data=plot_data[plot_data$Session=="ME",],method="lm", se=FALSE, linetype= "solid",fill="white",colour=colours3[4], size=2)+
   xlab(bquote(atop("Oxidative Phosphorylation","(pmol"*~s^-1*~mg^-1*")")))+
   ylab(expression("V\U0307" ~O[2][max]*"(mL"~min^-1*~kg^-1*")"))+
   scale_y_continuous(limits = c(0,75), breaks=seq(0,60,20), expand=c(0,0))+
@@ -5833,7 +7093,6 @@ CF_v_FCSA_HLM<-
                     labels=c("HDT55"="POST\nBed Rest","LC"="LC", "ME"="ME"))+
   scale_colour_manual(values = c("HDT55"="white","LC"="white","ME"="white"),
                       labels=c("HDT55"="POST\nBed Rest","LC"="LC", "ME"="ME"))+
-  # geom_smooth(data=plot_data[plot_data$Session=="HDT55",],method="lm", se=FALSE, linetype= "solid",fill="white",colour="black", size=2)+
   geom_smooth(data=plot_data[plot_data$Session=="LC",],method="lm",formula = y~x, se=FALSE, linetype= "solid",fill="white",colour=colours3[3], size=2, fullrange=F)+
   geom_smooth(data=plot_data[plot_data$Session=="ME",],method="lm",formula = y~x, se=FALSE, linetype= "dashed",fill="white",colour=colours3[4], size=2, fullrange=F)+
   xlab(expression("FCSA("*mu*m^2*")"))+
@@ -5871,12 +7130,173 @@ ggsave(plot=CF_v_FCSA_HLM,
        device="png",  width = 20, height = 16, units = "in")
 
 
+
+
+# Supplemental Figure 13 ----------------------------------------------------
+
+
+
+remove<-data[is.na(data$Rest_lactate)==TRUE ,"Subject"]
+
+test2<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx",sheet="Lactate"))
+
+test2<-test2[!test2$Subject %in% remove ,]
+
+test2<-test2[is.na(test2$Lactate)==F,]
+
+plot_data<-test2
+
+test3<-as.data.frame(box_cox_transform(test2))
+
+test2$Lactate<-test3$Lactate
+
+test2<-test2 %>%
+  mutate(Time=dplyr::recode(Time, "Rest_lactate"="Rest","Baseline_lactate"="Baseline", "Task_Failure_lactate"="Task Failure"))
+
+qqnorm(test2[test2$Session=="CON"& test2$Time=="Rest","Lactate"]);qqline(test2[test2$Session=="CON"& test2$Time=="Rest","Lactate"])
+qqnorm(test2[test2$Session=="LC"& test2$Time=="Rest","Lactate"]);qqline(test2[test2$Session=="LC"& test2$Time=="Rest","Lactate"])
+qqnorm(test2[test2$Session=="ME"& test2$Time=="Rest","Lactate"]);qqline(test2[test2$Session=="ME"& test2$Time=="Rest","Lactate"])
+
+qqnorm(test2[test2$Session=="CON"& test2$Time=="Baseline","Lactate"]);qqline(test2[test2$Session=="CON"& test2$Time=="Baseline","Lactate"])
+qqnorm(test2[test2$Session=="LC"& test2$Time=="Baseline","Lactate"]);qqline(test2[test2$Session=="LC"& test2$Time=="Baseline","Lactate"])
+qqnorm(test2[test2$Session=="ME"& test2$Time=="Baseline","Lactate"]);qqline(test2[test2$Session=="ME"& test2$Time=="Baseline","Lactate"])
+
+
+qqnorm(test2[test2$Session=="CON"& test2$Time=="Task Failure","Lactate"]);qqline(test2[test2$Session=="CON"& test2$Time=="Task Failure","Lactate"])
+qqnorm(test2[test2$Session=="LC"& test2$Time=="Task Failure","Lactate"]);qqline(test2[test2$Session=="LC"& test2$Time=="Task Failure","Lactate"])
+qqnorm(test2[test2$Session=="ME"& test2$Time=="Task Failure","Lactate"]);qqline(test2[test2$Session=="ME"& test2$Time=="Task Failure","Lactate"])
+
+
+test2$Time<-factor(test2$Time)
+test2$Session<-factor(test2$Session)
+
+model <- art(Lactate ~ Session*Time + (1|Subject), data=test2)
+
+anova(model, type="II")
+
+
+a<-as.data.frame(contrast(emmeans(artlm.con(model, "Session:Time"), ~ SessionTime), method = "pairwise"))
+
+
+
+all_pvals["CON-ME","Rest_lactate"]<-a$p.value[14]
+all_pvals["CON-LC","Rest_lactate"]<-a$p.value[11]
+all_pvals["LC-ME","Rest_lactate"]<-a$p.value[29]
+all_pvals["POST_VIRAL_test","Rest_lactate"]<-"aligned_rank_transform_pairwise_contrast_post_hoc"
+
+all_pvals["CON-ME","Baseline_lactate"]<-a$p.value[6]
+all_pvals["CON-LC","Baseline_lactate"]<-a$p.value[3]
+all_pvals["LC-ME","Baseline_lactate"]<-a$p.value[24]
+
+
+all_pvals["CON-ME","Task_Failure_lactate"]<-a$p.value[21]
+all_pvals["CON-LC","Task_Failure_lactate"]<-a$p.value[18]
+all_pvals["LC-ME","Task_Failure_lactate"]<-a$p.value[33]
+
+all_pvals["Lactate_group_effect","Lactate_ART_result"]<-anova(model,type="II")[1,5]
+all_pvals["Lactate_time_effect","Lactate_ART_result"]<-anova(model,type="II")[2,5]
+all_pvals["Lactate_interaction_effect","Lactate_ART_result"]<-anova(model,type="II")[3,5]
+
+
+
+# Make graph --------------------------------------------------------------
+
+
+stat_test <- tibble::tribble(
+  ~group1, ~group2, ~p.adj, ~Time,
+  "CON","ME",paste(format(round(as.numeric(all_pvals["CON-ME","Rest_lactate"]),3), drop0trailing=F),"00",sep=""),"Rest",
+  "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","Rest_lactate"]),3), drop0trailing=F)),"Rest",
+  "LC","ME","1.00","Rest",
+  "CON","ME","1.00","Baseline",
+  "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","Baseline_lactate"]),3), drop0trailing=F)),"Baseline",
+  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","Baseline_lactate"]),3), drop0trailing=F)),"Baseline",
+  "CON","ME",paste(format(round(as.numeric(all_pvals["CON-ME","Task_Failure_lactate"]),3), drop0trailing=F)),"Task Failure",
+  "CON","LC","1.00","Task Failure",
+  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","Task_Failure_lactate"]),3), drop0trailing=F)),"Task Failure")
+
+plot_data<-plot_data %>%
+  mutate(Time=dplyr::recode(Time, "Rest_lactate"="Rest","Baseline_lactate"="Baseline", "Task_Failure_lactate"="Task Failure"))
+
+label_data<-data.frame(label=c(paste("Group: p=",paste(format(round(as.numeric(all_pvals["Lactate_group_effect","Lactate_ART_result"]),3), drop0trailing=F),"0",sep=""),"\n",
+                                     "Time: p<0.001","\n",
+                                     "Interaction: p=",paste(format(round(as.numeric(all_pvals["Lactate_interaction_effect","Lactate_ART_result"]),3), drop0trailing=F)),
+                                     sep=""
+)), Time=c("Rest"), Session=c("LC"))
+
+Lactate_supp<-
+  ggplot(plot_data, 
+         aes(
+           x=fct_relevel(Session,"CON","LC","ME"),
+           y=Lactate, group=Session,fill=Session))+
+  geom_boxplot(linewidth=2, outlier.shape = NA, coef=0)+
+  geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
+  scale_fill_manual(values = c("CON"=colours3[1], "LC"=colours3[3], "ME"=colours3[4]))+
+  ylab(expression("Blood Lactate (mM)"))+
+  scale_y_continuous(limits=c(0,35), breaks=seq(0,30,5),expand=c(0,0))+
+  scale_x_discrete(labels=c("CON"="CON ","LC"="LC","ME"="ME"))+
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(14), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(10), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(8), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[4,], label = "p.adj",y.position=c(14), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[5,], label = "p.adj",y.position=c(10), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[6,], label = "p.adj",y.position=c(8), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[7,], label = "p.adj",y.position=c(30), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[8,], label = "p.adj",y.position=c(27), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  stat_pvalue_manual(data=stat_test[9,], label = "p.adj",y.position=c(24), bracket.size=2,
+                     label.size=14,tip.length = c(0.02,0.02),
+                     linetype="solid", inherit.aes=FALSE)+
+  geom_text(data=label_data, aes(x="LC", y=30, label=label), size=14)+
+  
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)),
+        axis.title.y = element_text(angle = 90,hjust=0.25, margin = margin(t = 0, r = 0, b = 1.5, l = 0)), # for atop functions export as 9.5x14in
+        axis.title.x = element_blank(),
+        axis.text.y = element_text( hjust=1,size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( vjust=0,size =rel((base_size+title_text_rel_size)/base_size))
+  )+
+  facet_wrap(~fct_relevel(Time, "Rest","Baseline","Task Failure"))+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=Lactate_supp,
+       filename = paste(output_folder,"/Lactate_supp_",date,".png", sep = ""),
+       device="png",  width = 18, height = 14, units = "in")
+
+
+
 # Figure 2C ---------------------------------------------------------------
-# Fibre type proportions ---------------------------------------------------
+# Fibre type proportions by area occuppied ---------------------------------------------------
 
 # Stats -------------------------------------------------------------------
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_230525.xlsx", sheet="Sheet2"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -5910,8 +7330,6 @@ test<-test %>%
   filter_all(all_vars(!is.infinite(.)))
 test[,c("Subject","Session","Group","Sex")]<-data[,c("Subject","Session","Group","Sex")]
 test_norm<-normality_test(test)
-# remove<-data[is.na(data$AHRR)==TRUE,"Subject"]
-# test2<-test[!test$Subject %in% remove,]
 # 
 # mean(data[data$Session=="BDC","Percent_I"],na.rm=TRUE); sd(data[data$Session=="BDC","Percent_I"],na.rm=TRUE)
 # mean(data[data$Session=="HDT55","Percent_I"],na.rm=TRUE); sd(data[data$Session=="HDT55","Percent_I"],na.rm=TRUE)
@@ -5952,7 +7370,7 @@ test_norm<-normality_test(test)
 
 model <-lme(Percent_I~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","Percent_I"]<-a$`Pr(>Chisq)`
 
 a<-
@@ -5979,16 +7397,13 @@ all_pvals["POST_VIRAL_test","Percent_I"]<-"anova_tukey_post_hoc"
 
 model <-lme(Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","Percent_I_IIa"]<-a$`Pr(>Chisq)`
 b<-
   t_test(test[test$Group=="BED REST",], Percent_I_IIa~Session, paired=TRUE)
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","Percent_I_IIa"]<-b$p
-# all_pvals["CON-ME","Percent_I_IIa"]<-a$p.adj[2]
-# all_pvals["CON-LC","Percent_I_IIa"]<-a$p.adj[1]
-# all_pvals["LC-ME","Percent_I_IIa"]<-a$p.adj[3]
 all_pvals["BED_REST_test","Percent_I_IIa"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","Percent_I_IIa"]<-"anova_no_post_hoc"
 
@@ -6003,7 +7418,7 @@ all_pvals["POST_VIRAL_test","Percent_I_IIa"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIa"]);qqline(test[test$Session=="ME","Percent_IIa"])
 
 model <-lme(Percent_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","Percent_IIa"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6011,9 +7426,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","Percent_IIa"]<-b$p
-# all_pvals["CON-ME","Percent_IIa"]<-a$p.adj[2]
-# all_pvals["CON-LC","Percent_IIa"]<-a$p.adj[1]
-# all_pvals["LC-ME","Percent_IIa"]<-a$p.adj[3]
 all_pvals["BED_REST_test","Percent_IIa"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","Percent_IIa"]<-"anova_no_post_hoc"
 
@@ -6028,7 +7440,7 @@ all_pvals["POST_VIRAL_test","Percent_IIa"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIa_IIx"]);qqline(test[test$Session=="ME","Percent_IIa_IIx"])
 
 model <-lme(Percent_IIa_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","Percent_IIa_IIx"]<-a$`Pr(>Chisq)`
 a<-
   test[test$Group=="POST-VIRAL",] %>% tukey_hsd(Percent_IIa_IIx~Session)
@@ -6053,16 +7465,13 @@ all_pvals["POST_VIRAL_test","Percent_IIa_IIx"]<-"anova_tukey_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIx"]);qqline(test[test$Session=="ME","Percent_IIx"])
 
 model <-lme(Percent_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","Percent_IIx"]<-a$`Pr(>Chisq)`
 b<-
   t_test(test[test$Group=="BED REST",], Percent_IIx~Session, paired=TRUE)
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","Percent_IIx"]<-b$p
-# all_pvals["CON-ME","Percent_IIx"]<-a$p.adj[2]
-# all_pvals["CON-LC","Percent_IIx"]<-a$p.adj[1]
-# all_pvals["LC-ME","Percent_IIx"]<-a$p.adj[3]
 all_pvals["BED_REST_test","Percent_IIx"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","Percent_IIx"]<-"anova_no_post_hoc"
 
@@ -6104,7 +7513,7 @@ stat_test <- tibble::tribble(
   "CON","ME","p<0.001","POST-VIRAL",4  , 75, 3.75, 4.25, 0.01, 0.5,  14, 6,"black",
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 60, 3.75, 4, 0.01, 0.5,  14, 6,"black")
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_230525.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -6200,7 +7609,7 @@ fibre_type_b<-
              position = position_jitterdodge(dodge.width = 0.75, jitter.height = 0, jitter.width = 0.2, seed=1), 
              aes(group=factor(Session),colour=factor(Session)), fill="white")+
   stat_pvalue_manual(data=stat_test, label = "p.adj.signif",y.position="y.coord"
-                     ,label.size=8.5,tip.length = 0.01,
+                     ,label.size=10,tip.length = 0.01,
                      xmin="x_min",xmax="x_max",
                      linetype="solid", 
                      bracket.size =2, 
@@ -6240,11 +7649,11 @@ ggsave(plot=fibre_type_b,
 
 
 
-# Supplemental 3 ----------------------------------------------------------
+# Supplemental Figure 7 ----------------------------------------------------------
 # fibre type FCSA ---------------------------------------------------------
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_230525.xlsx", sheet="Sheet2"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -6321,7 +7730,7 @@ test2<-test[!test$Subject %in% remove,]
 
 model <-lme(TypeI_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","TypeI_FCSA"]<-a$`Pr(>Chisq)`
 # post-hoc testing    
 a<-
@@ -6349,7 +7758,7 @@ all_pvals["POST_VIRAL_test","TypeI_FCSA"]<-"anova_tukey_post_hoc"
 
 model <-lme(TypeI_IIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","TypeI_IIa_FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6357,9 +7766,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","TypeI_IIa_FCSA"]<-b$p
-# all_pvals["CON-ME","TypeI_IIa_FCSA"]<-a$p.adj[2]
-# all_pvals["CON-LC","TypeI_IIa_FCSA"]<-a$p.adj[1]
-# all_pvals["LC-ME","TypeI_IIa_FCSA"]<-a$p.adj[3]
 all_pvals["BED_REST_test","TypeI_IIa_FCSA"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","TypeI_IIa_FCSA"]<-"anova_no_post_hoc"
 
@@ -6373,7 +7779,7 @@ all_pvals["POST_VIRAL_test","TypeI_IIa_FCSA"]<-"anova_no_post_hoc"
 
 model <-lme(TypeIIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","TypeIIa_FCSA"]<-a$`Pr(>Chisq)`
 b<-
   t_test(test[test$Group=="BED REST",], TypeIIa_FCSA~Session, paired=TRUE)
@@ -6381,9 +7787,6 @@ b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c
 
 
 all_pvals["BDC-HDT55","TypeIIa_FCSA"]<-b$p
-# all_pvals["CON-ME","TypeIIa_FCSA"]<-a$p.adj[2]
-# all_pvals["CON-LC","TypeIIa_FCSA"]<-a$p.adj[1]
-# all_pvals["LC-ME","TypeIIa_FCSA"]<-a$p.adj[3]
 all_pvals["BED_REST_test","TypeIIa_FCSA"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","TypeIIa_FCSA"]<-"anova_no_post_hoc"
 
@@ -6396,7 +7799,7 @@ all_pvals["POST_VIRAL_test","TypeIIa_FCSA"]<-"anova_no_post_hoc"
 
 model <-lme(Type_IIa_IIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","Type_IIa_IIx_FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6404,9 +7807,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","Type_IIa_IIx_FCSA"]<-b$p
-# all_pvals["CON-ME","Type_IIa_IIx_FCSA"]<-a$p.adj[2]
-# all_pvals["CON-LC","Type_IIa_IIx_FCSA"]<-a$p.adj[1]
-# all_pvals["LC-ME","Type_IIa_IIx_FCSA"]<-a$p.adj[3]
 all_pvals["BED_REST_test","Type_IIa_IIx_FCSA"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","Type_IIa_IIx_FCSA"]<-"anova_no_post_hoc"
 
@@ -6421,7 +7821,7 @@ all_pvals["POST_VIRAL_test","Type_IIa_IIx_FCSA"]<-"anova_no_post_hoc"
 
 model <-lme(TypeIIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
 
-a<-car::Anova(model)
+a<-Anova(model)
 all_pvals["ANOVA","TypeIIx_FCSA"]<-a$`Pr(>Chisq)`
 
 b<-
@@ -6429,9 +7829,6 @@ b<-
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
 
 all_pvals["BDC-HDT55","TypeIIx_FCSA"]<-b$p
-# all_pvals["CON-ME","TypeIIx_FCSA"]<-a$p.adj[2]
-# all_pvals["CON-LC","TypeIIx_FCSA"]<-a$p.adj[1]
-# all_pvals["LC-ME","TypeIIx_FCSA"]<-a$p.adj[3]
 all_pvals["BED_REST_test","TypeIIx_FCSA"]<-"paired_t_test"
 all_pvals["POST_VIRAL_test","TypeIIx_FCSA"]<-"anova_no_post_hoc"
 
@@ -6448,12 +7845,12 @@ stat_test_a <- tibble::tribble(
 
 stat_test_b <- tibble::tribble(
   ~group1, ~group2, ~p.adj.signif, ~Group, ~Fibre_type, ~y.coord, ~x_min,~x_max, ~tip1,~tip2, ~label_size, ~bracket_size, ~colours,
-  "CON","ME",paste(format(round(as.numeric(all_pvals["CON-ME","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 9200, 0.75, 1.25,0.01, 0.01, 30, 10, "black",
-  "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 8500, 0.75, 1.0,0.01, 0.01, 30, 10, "black",
-  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 7800, 1.0, 1.25,0.01, 0.01, 30, 10, "black")
+  "CON","ME",paste(format(round(as.numeric(all_pvals["CON-ME","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 9700, 0.75, 1.25,0.01, 0.01, 30, 10, "black",
+  "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 8700, 0.75, 1.0,0.01, 0.01, 30, 10, "black",
+  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 8000, 1.0, 1.25,0.01, 0.01, 30, 10, "black")
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_230525.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -6493,7 +7890,7 @@ fibre_type_FCSA_a<-
              position = position_jitterdodge(dodge.width = 0.5, jitter.height = 0, jitter.width = 0.2, seed=1), 
              aes(group=factor(Session),colour=factor(Session)), fill="white")+
   stat_pvalue_manual(data=stat_test_a, label = "p.adj.signif",y.position="y.coord"
-                     ,label.size=8.5,tip.length = 0.01,
+                     ,label.size=12,tip.length = 0.01,
                      xmin="x_min",xmax="x_max",
                      linetype="solid",
                      bracket.size =2,
@@ -6555,7 +7952,7 @@ fibre_type_FCSA_b<-
              position = position_jitterdodge(dodge.width = 0.75, jitter.height = 0, jitter.width = 0.2, seed=1), 
              aes(group=factor(Session),colour=factor(Session)), fill="white")+
   stat_pvalue_manual(data=stat_test_b, label = "p.adj.signif",y.position="y.coord"
-                     ,label.size=8.5,tip.length = 0.01,
+                     ,label.size=12,tip.length = 0.01,
                      xmin="x_min",xmax="x_max",
                      linetype="solid", 
                      bracket.size =2, 
@@ -6595,6 +7992,370 @@ ggsave(plot=fibre_type_FCSA_b,
 
 
 
+# Fibre type proportions by numerical value ---------------------------------------------------
+
+# Stats -------------------------------------------------------------------
+
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
+
+data<-data %>%
+  mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
+
+data$FT_Percent_IIa_IIx_IIx<-data$FT_Percent_IIa_IIx+data$Percent_IIx
+
+# Check normality ---------------------------------------------------------
+
+op<-par(mfrow=c(1,5), mar=c(2,2,2,2))
+sessions<-unique(data$Session)
+for (i in 4:length(colnames(data)) ){
+  try({
+    parameter<-colnames(data[i])
+    for (j in 1:length(sessions)){
+      session<-sessions[j]
+      tmp<- data[data$Session==session,parameter]
+      qqnorm(tmp,xlab=parameter, main=paste(session,parameter,sep="_"))
+      qqline(tmp)
+      
+    }
+    
+  },silent=TRUE)
+  
+  
+}
+
+norm_p_vals<-normality_test(data)
+# Fibre Percents
+test<-as.data.frame(box_cox_transform(data))
+test<-test %>% 
+  filter_all(all_vars(!is.infinite(.)))
+test[,c("Subject","Session","Group","Sex")]<-data[,c("Subject","Session","Group","Sex")]
+test_norm<-normality_test(test)
+
+# 
+# mean(data[data$Session=="BDC","FT_Percent_I"],na.rm=TRUE); sd(data[data$Session=="BDC","FT_Percent_I"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","FT_Percent_I"],na.rm=TRUE); sd(data[data$Session=="HDT55","FT_Percent_I"],na.rm=TRUE)
+# mean(data[data$Session=="CON","FT_Percent_I"],na.rm=TRUE); sd(data[data$Session=="CON","FT_Percent_I"],na.rm=TRUE)
+# mean(data[data$Session=="LC","FT_Percent_I"],na.rm=TRUE); sd(data[data$Session=="LC","FT_Percent_I"],na.rm=TRUE)
+# mean(data[data$Session=="ME","FT_Percent_I"],na.rm=TRUE); sd(data[data$Session=="ME","FT_Percent_I"],na.rm=TRUE)
+# 
+# mean(data[data$Session=="BDC","FT_Percent_I_IIa"],na.rm=TRUE); sd(data[data$Session=="BDC","FT_Percent_I_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","FT_Percent_I_IIa"],na.rm=TRUE); sd(data[data$Session=="HDT55","FT_Percent_I_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="CON","FT_Percent_I_IIa"],na.rm=TRUE); sd(data[data$Session=="CON","FT_Percent_I_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="LC","FT_Percent_I_IIa"],na.rm=TRUE); sd(data[data$Session=="LC","FT_Percent_I_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="ME","FT_Percent_I_IIa"],na.rm=TRUE); sd(data[data$Session=="ME","FT_Percent_I_IIa"],na.rm=TRUE)
+# 
+# mean(data[data$Session=="BDC","FT_Percent_IIa"],na.rm=TRUE); sd(data[data$Session=="BDC","FT_Percent_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","FT_Percent_IIa"],na.rm=TRUE); sd(data[data$Session=="HDT55","FT_Percent_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="CON","FT_Percent_IIa"],na.rm=TRUE); sd(data[data$Session=="CON","FT_Percent_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="LC","FT_Percent_IIa"],na.rm=TRUE); sd(data[data$Session=="LC","FT_Percent_IIa"],na.rm=TRUE)
+# mean(data[data$Session=="ME","FT_Percent_IIa"],na.rm=TRUE); sd(data[data$Session=="ME","FT_Percent_IIa"],na.rm=TRUE)
+# 
+# mean(data[data$Session=="BDC","FT_Percent_IIa_IIx"],na.rm=TRUE); sd(data[data$Session=="BDC","FT_Percent_IIa_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","FT_Percent_IIa_IIx"],na.rm=TRUE); sd(data[data$Session=="HDT55","FT_Percent_IIa_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="CON","FT_Percent_IIa_IIx"],na.rm=TRUE); sd(data[data$Session=="CON","FT_Percent_IIa_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="LC","FT_Percent_IIa_IIx"],na.rm=TRUE); sd(data[data$Session=="LC","FT_Percent_IIa_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="ME","FT_Percent_IIa_IIx"],na.rm=TRUE); sd(data[data$Session=="ME","FT_Percent_IIa_IIx"],na.rm=TRUE)
+# 
+# mean(data[data$Session=="BDC","FT_Percent_IIx"],na.rm=TRUE); sd(data[data$Session=="BDC","FT_Percent_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="HDT55","FT_Percent_IIx"],na.rm=TRUE); sd(data[data$Session=="HDT55","FT_Percent_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="CON","FT_Percent_IIx"],na.rm=TRUE); sd(data[data$Session=="CON","FT_Percent_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="LC","FT_Percent_IIx"],na.rm=TRUE); sd(data[data$Session=="LC","FT_Percent_IIx"],na.rm=TRUE)
+# mean(data[data$Session=="ME","FT_Percent_IIx"],na.rm=TRUE); sd(data[data$Session=="ME","FT_Percent_IIx"],na.rm=TRUE)
+
+# Type I  
+# qqnorm(test[test$Session=="BDC","FT_Percent_I"]);qqline(test[test$Session=="BDC","FT_Percent_I"])
+# qqnorm(test[test$Session=="HDT55","FT_Percent_I"]);qqline(test[test$Session=="HDT55","FT_Percent_I"])
+# qqnorm(test[test$Session=="CON","FT_Percent_I"]);qqline(test[test$Session=="CON","FT_Percent_I"])
+# qqnorm(test[test$Session=="LC","FT_Percent_I"]);qqline(test[test$Session=="LC","FT_Percent_I"])
+# qqnorm(test[test$Session=="ME","FT_Percent_I"]);qqline(test[test$Session=="ME","FT_Percent_I"])
+
+
+a<-
+  kruskal.test(FT_Percent_I~Session, data=test[test$Group=="POST-VIRAL",])
+all_pvals["ANOVA","FT_Percent_I"]<-a$p.value
+
+a<-pairwise.wilcox.test(test[test$Group=="POST-VIRAL","FT_Percent_I"], test[test$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
+
+
+  
+
+b<-
+  t_test(test[test$Group=="BED REST",], FT_Percent_I~Session, paired=TRUE)
+b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
+
+all_pvals["BDC-HDT55","FT_Percent_I"]<-b$p
+all_pvals["CON-ME","FT_Percent_I"]<-a$p.value[2]
+all_pvals["CON-LC","FT_Percent_I"]<-a$p.value[1]
+all_pvals["LC-ME","FT_Percent_I"]<-a$p.value[4]
+all_pvals["BED_REST_test","FT_Percent_I"]<-"paired_t_test"
+all_pvals["POST_VIRAL_test","FT_Percent_I"]<-"kruskal_pw_wilcoxon_post_hoc"
+
+
+# Type I/IIa  
+
+# qqnorm(test[test$Session=="BDC","FT_Percent_I_IIa"]);qqline(test[test$Session=="BDC","FT_Percent_I_IIa"])
+# qqnorm(test[test$Session=="HDT55","FT_Percent_I_IIa"]);qqline(test[test$Session=="HDT55","FT_Percent_I_IIa"])
+# qqnorm(test[test$Session=="CON","FT_Percent_I_IIa"]);qqline(test[test$Session=="CON","FT_Percent_I_IIa"])
+# qqnorm(test[test$Session=="LC","FT_Percent_I_IIa"]);qqline(test[test$Session=="LC","FT_Percent_I_IIa"])
+# qqnorm(test[test$Session=="ME","FT_Percent_I_IIa"]);qqline(test[test$Session=="ME","FT_Percent_I_IIa"])
+
+model <-lme(FT_Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+
+a<-Anova(model)
+all_pvals["ANOVA","FT_Percent_I_IIa"]<-a$`Pr(>Chisq)`
+b<-
+  t_test(test[test$Group=="BED REST",], FT_Percent_I_IIa~Session, paired=TRUE)
+b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
+
+all_pvals["BDC-HDT55","FT_Percent_I_IIa"]<-b$p
+all_pvals["BED_REST_test","FT_Percent_I_IIa"]<-"paired_t_test"
+all_pvals["POST_VIRAL_test","FT_Percent_I_IIa"]<-"anova_no_post_hoc"
+
+
+
+# Type IIa
+
+# qqnorm(test[test$Session=="BDC","FT_Percent_IIa"]);qqline(test[test$Session=="BDC","FT_Percent_IIa"])
+# qqnorm(test[test$Session=="HDT55","FT_Percent_IIa"]);qqline(test[test$Session=="HDT55","FT_Percent_IIa"])
+# qqnorm(test[test$Session=="CON","FT_Percent_IIa"]);qqline(test[test$Session=="CON","FT_Percent_IIa"])
+# qqnorm(test[test$Session=="LC","FT_Percent_IIa"]);qqline(test[test$Session=="LC","FT_Percent_IIa"])
+# qqnorm(test[test$Session=="ME","FT_Percent_IIa"]);qqline(test[test$Session=="ME","FT_Percent_IIa"])
+
+
+a<-
+  kruskal.test(FT_Percent_IIa~Session, data=test[test$Group=="POST-VIRAL",])
+all_pvals["ANOVA","FT_Percent_IIa"]<-a$p.value
+
+b<-
+  t_test(test[test$Group=="BED REST",], FT_Percent_IIa~Session, paired=TRUE)
+b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
+
+all_pvals["BDC-HDT55","FT_Percent_IIa"]<-b$p
+all_pvals["BED_REST_test","FT_Percent_IIa"]<-"paired_t_test"
+all_pvals["POST_VIRAL_test","FT_Percent_IIa"]<-"kruskal_no_post_hoc"
+
+
+
+# Type IIa/IIx
+
+# qqnorm(test[test$Session=="BDC","FT_Percent_IIa_IIx"]);qqline(test[test$Session=="BDC","FT_Percent_IIa_IIx"])
+# qqnorm(test[test$Session=="HDT55","FT_Percent_IIa_IIx"]);qqline(test[test$Session=="HDT55","FT_Percent_IIa_IIx"])
+# qqnorm(test[test$Session=="CON","FT_Percent_IIa_IIx"]);qqline(test[test$Session=="CON","FT_Percent_IIa_IIx"])
+# qqnorm(test[test$Session=="LC","FT_Percent_IIa_IIx"]);qqline(test[test$Session=="LC","FT_Percent_IIa_IIx"])
+# qqnorm(test[test$Session=="ME","FT_Percent_IIa_IIx"]);qqline(test[test$Session=="ME","FT_Percent_IIa_IIx"])
+
+
+a<-
+  kruskal.test(FT_Percent_IIa_IIx~Session, data=test[test$Group=="POST-VIRAL",])
+all_pvals["ANOVA","FT_Percent_IIa_IIx"]<-a$p.value
+
+a<-pairwise.wilcox.test(test[test$Group=="POST-VIRAL","FT_Percent_IIa_IIx"], test[test$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
+
+
+b<-
+  wilcox.test(test[test$Session=="BDC","FT_Percent_IIa_IIx"], test[test$Session=="HDT55","FT_Percent_IIa_IIx"],paired=TRUE)
+
+
+all_pvals["BDC-HDT55","FT_Percent_IIa_IIx"]<-b$p.value
+all_pvals["CON-ME","FT_Percent_IIa_IIx"]<-a$p.value[2]
+all_pvals["CON-LC","FT_Percent_IIa_IIx"]<-a$p.value[1]
+all_pvals["LC-ME","FT_Percent_IIa_IIx"]<-a$p.value[4]
+all_pvals["BED_REST_test","FT_Percent_IIa_IIx"]<-"wilcoxon"
+all_pvals["POST_VIRAL_test","FT_Percent_IIa_IIx"]<-"anova_tukey_post_hoc"
+
+
+# Type IIx 
+
+# qqnorm(test[test$Session=="BDC","FT_Percent_IIx"]);qqline(test[test$Session=="BDC","FT_Percent_IIx"])
+# qqnorm(test[test$Session=="HDT55","FT_Percent_IIx"]);qqline(test[test$Session=="HDT55","FT_Percent_IIx"])
+# qqnorm(test[test$Session=="CON","FT_Percent_IIx"]);qqline(test[test$Session=="CON","FT_Percent_IIx"])
+# qqnorm(test[test$Session=="LC","FT_Percent_IIx"]);qqline(test[test$Session=="LC","FT_Percent_IIx"])
+# qqnorm(test[test$Session=="ME","FT_Percent_IIx"]);qqline(test[test$Session=="ME","FT_Percent_IIx"])
+
+
+
+a<-
+  kruskal.test(FT_Percent_IIx~Session, data=test[test$Group=="POST-VIRAL",])
+all_pvals["ANOVA","FT_Percent_IIx"]<-a$p.value
+
+
+all_pvals["BED_REST_test","FT_Percent_IIx"]<-"NA_not_enough_obs"
+all_pvals["POST_VIRAL_test","FT_Percent_IIx"]<-"kruskal_no_post_hoc"
+
+
+
+# type IIa/IIx + IIx sum
+
+# qqnorm(test[test$Session=="BDC","FT_Percent_IIa_IIx_IIx"]);qqline(test[test$Session=="BDC","FT_Percent_IIa_IIx_IIx"])
+# qqnorm(test[test$Session=="HDT55","FT_Percent_IIa_IIx_IIx"]);qqline(test[test$Session=="HDT55","FT_Percent_IIa_IIx_IIx"])
+# qqnorm(test[test$Session=="CON","FT_Percent_IIa_IIx_IIx"]);qqline(test[test$Session=="CON","FT_Percent_IIa_IIx_IIx"])
+# qqnorm(test[test$Session=="LC","FT_Percent_IIa_IIx_IIx"]);qqline(test[test$Session=="LC","FT_Percent_IIa_IIx_IIx"])
+# qqnorm(test[test$Session=="ME","FT_Percent_IIa_IIx_IIx"]);qqline(test[test$Session=="ME","FT_Percent_IIa_IIx_IIx"])
+a<-
+  kruskal.test(FT_Percent_IIa_IIx_IIx~Session, data=test[test$Group=="POST-VIRAL",])
+all_pvals["ANOVA","FT_Percent_IIa_IIx_IIx"]<-a$p.value
+
+a<-pairwise.wilcox.test(test[test$Group=="POST-VIRAL","FT_Percent_IIa_IIx_IIx"], test[test$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
+
+b<-
+  wilcox.test(test[test$Session=="BDC","FT_Percent_IIa_IIx_IIx"], test[test$Session=="HDT55","FT_Percent_IIa_IIx_IIx"],paired=TRUE)
+
+all_pvals["BDC-HDT55","FT_Percent_IIa_IIx_IIx"]<-b$p.value
+all_pvals["CON-ME","FT_Percent_IIa_IIx_IIx"]<-a$p.value[2]
+all_pvals["CON-LC","FT_Percent_IIa_IIx_IIx"]<-a$p.value[1]
+all_pvals["LC-ME","FT_Percent_IIa_IIx_IIx"]<-a$p.value[4]
+all_pvals["BED_REST_test","FT_Percent_IIa_IIx_IIx"]<-"wilcoxon"
+all_pvals["POST_VIRAL_test","FT_Percent_IIa_IIx_IIx"]<-"kruskal_pw_wilcoxon_post_hoc"
+
+
+# to fix ------------------------------------------------------------------
+
+
+stat_test <- tibble::tribble(
+  ~group1, ~group2, ~p.adj.signif, ~Group, ~Fibre_type, ~y.coord, ~x_min,~x_max, ~tip1,~tip2, ~label_size, ~bracket_size, ~colours,
+  "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","FT_Percent_I"]),3), drop0trailing=F)),"POST-VIRAL",1  , 100, 0.75, 1,   0.01, 0.5,  14, 6,"black",
+  "CON","ME","p<0.001","POST-VIRAL",1  ,115 , 0.75, 1.25,0.01, 0.5,  14, 6,"black",
+  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_I"]),3), drop0trailing=F)),"POST-VIRAL",1  , 85, 1, 1.25,     0.01, 0.5,  14, 6,"black",
+  "CON","ME","p=0.001","POST-VIRAL",4  , 85, 3.75, 4.25, 0.01, 0.5,  14, 6,"black",
+  "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 70, 3.75, 4, 0.01, 0.5,  14, 6,"black",
+  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 55, 4, 4.25, 0.01, 0.5,  14, 6,"black")
+
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="SuppFig7"))
+
+data<-data %>%
+  mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
+data<-data %>%
+  mutate(Fibre_type=dplyr::recode(Fibre_type, "I"=1,"I_IIa"=2,"IIa"=3,"IIa_IIx"=5,"IIx"=6,"IIa_IIx_IIx"=4))
+
+data<-data[data$Fibre_type!=5 & data$Fibre_type!=6,]
+
+remove<-data[data$Fibre_type==1 &is.na(data$Percent)==TRUE,"Subject"]
+
+data<-data[!data$Subject %in% remove,]
+
+data[["Session"]] = factor( data[["Session"]], levels = c("BDC", "HDT55", "CON","LC","ME"))
+
+data1<-data[data$Group=="BED REST",]
+data2<-data[data$Group=="POST-VIRAL",]
+
+perc_fibre_type_a<-
+  ggplot(data=data1, aes(x=Fibre_type, y=Percent))+
+  geom_boxplot(data=data1[data1$Fibre_type==1 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.5),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data2[,"Session"])))+
+  geom_boxplot(data=data1[data1$Fibre_type==2 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.5),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data2[,"Session"])))+
+  geom_boxplot(data=data1[data1$Fibre_type==3 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.5),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data2[,"Session"])))+
+  geom_boxplot(data=data1[data1$Fibre_type==4 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.5),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data2[,"Session"])))+
+  geom_point(size=5,stroke=2 , shape=21, 
+             position = position_jitterdodge(dodge.width = 0.5, jitter.height = 0, jitter.width = 0.2, seed=1), 
+             aes(group=factor(Session),colour=factor(Session)), fill="white")+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"="grey42", "LC"=colours3[3], "ME"=colours3[4]))+
+  scale_colour_manual(values=c("CON"="black","BDC"="black", "HDT55"="black", "LC"="black", "ME"="black"))+
+  ylab(expression("% of Fibers"))+
+  xlab("Fiber Type")+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size/2),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)), 
+        axis.title.y = element_text(angle = 90, vjust = 1, hjust=0.3), # for atop functions export as 9.5x14in
+        axis.title.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.text.y = element_text( size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( size =rel((base_size+axis_text_rel_size-10)/base_size)),
+        strip.background = element_blank(),
+        strip.text = element_blank())+
+  scale_y_continuous(limits=c(0,140), breaks=seq(0,100,25),expand=c(0,0))+
+  scale_x_continuous(breaks=c(1,2,3,4), labels = c("I","I/IIa","IIa","IIa/IIx + IIx"))+
+  guides(y=guide_axis(cap="upper"))
+
+ggsave(plot=perc_fibre_type_a,
+       filename = paste(output_folder,"/perc_fibre_type_a_",date,".png", sep = ""),
+       device="png",  width = 17, height = 12, units = "in")
+
+perc_fibre_type_b<-
+  ggplot(data=data2, aes(x=Fibre_type, y=Percent))+
+  geom_boxplot(data=data2[data2$Fibre_type==1 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.75),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data1[,"Session"])))+
+  geom_boxplot(data=data2[data2$Fibre_type==2 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.75),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data1[,"Session"])))+
+  geom_boxplot(data=data2[data2$Fibre_type==3 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.75),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data1[,"Session"])))+
+  geom_boxplot(data=data2[data2$Fibre_type==4 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.75),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data1[,"Session"])))+
+  geom_boxplot(data=data2[data2$Fibre_type==5 ,],linewidth=2, outlier.shape = NA, coef=0,
+               position = position_dodge(width = 0.75),
+               aes(group=factor(Session),fill=factor(Session)),
+               width=1.5/length(unique(data1[,"Session"])))+
+  geom_point(size=5,stroke=2 , shape=21, 
+             position = position_jitterdodge(dodge.width = 0.75, jitter.height = 0, jitter.width = 0.2, seed=1), 
+             aes(group=factor(Session),colour=factor(Session)), fill="white")+
+  stat_pvalue_manual(data=stat_test, label = "p.adj.signif",y.position="y.coord"
+                     ,label.size=12,tip.length = 0.01,
+                     xmin="x_min",xmax="x_max",
+                     linetype="solid", 
+                     bracket.size =2, 
+                     inherit.aes=FALSE)+
+  scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"="grey42", "LC"=colours3[3], "ME"=colours3[4]))+
+  scale_colour_manual(values=c("CON"="black","BDC"="black", "HDT55"="black", "LC"="black", "ME"="black"))+
+  ylab(expression("% of Fibers"))+
+  xlab("Fiber Type")+
+  theme(legend.position = "none",
+        axis.line=element_line(colour="black", size = line_size/2),
+        axis.ticks = element_blank(),
+        axis.ticks.x =element_blank(),
+        text=element_text(size=base_size, family = "Arial"),
+        panel.background  = element_rect(fill="white", colour = "white"),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(
+          size = rel((title_text_rel_size + base_size) / base_size),
+          hjust = 0.5
+        ),
+        axis.title = element_text(size = rel((title_text_rel_size + base_size) / base_size)), 
+        axis.title.y = element_text(angle = 90, vjust = 1, hjust=0.3), # for atop functions export as 9.5x14in
+        axis.title.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.text.y = element_text( size =rel((base_size+axis_text_rel_size)/base_size)),
+        axis.text.x = element_text( size =rel((base_size+axis_text_rel_size-10)/base_size)),
+        strip.background = element_blank(),
+        strip.text = element_blank())+
+  scale_y_continuous(limits=c(0,140), breaks=seq(0,100,25),expand=c(0,0))+
+  scale_x_continuous(breaks=c(1,2,3,4), labels = c("I","I/IIa","IIa","IIa/IIx + IIx"))+
+  guides(y=guide_axis(cap="upper"))
+
+
+ggsave(plot=perc_fibre_type_b,
+       filename = paste(output_folder,"/perc_fibre_type_b_",date,".png", sep = ""),
+       device="png",  width = 17, height = 12, units = "in")
+
+
+
+
 
 # save csv files -------------------------------------------------------------
 
@@ -6603,3 +8364,4 @@ write.csv(cor_pvals, file =paste(output_folder,"/cor_pvals_",date,".csv", sep = 
 write.csv(HLM_pvals, file =paste(output_folder,"/HLM_pvals_",date,".csv", sep = "") )
 write.csv(BC_pvals, file =paste(output_folder,"/BC_pvals_",date,".csv", sep = "") )
 write.csv(test_norm, file =paste(output_folder,"/test_norm_",date,".csv", sep = "") )
+
