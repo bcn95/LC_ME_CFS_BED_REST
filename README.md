@@ -7,7 +7,7 @@ Prior to Running Code:
 Install latest version of R and R Studio
 Manually input working directory at line 46
 Manually input date at line 45
-Ensure that the file "Manuscript_data_clean_230525.xlsx" is located in the working directory
+Ensure that the file "Manuscript_data_clean_020226.xlsx" is located in the working directory
 If needed, adjust the output folder
 
 To run code: 
