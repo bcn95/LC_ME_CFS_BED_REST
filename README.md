@@ -15,5 +15,5 @@ Download excel file to working directory, input working directory and date, and 
 
 Commented areas are not necessary for replication of statistics or graphs. These can be uncommented for assessing exact means and standard deviations, assessing normality of data or comparing correlations, however they have been commmented to ensure quicker running of R code. 
 
-Output includes all graphs found in both main and supplementary figures, .csv files containing significance tests found in figures. Statistical tests related to tables can be found in lines 332-400, 2131-2160, 2794-2837 and 6227-6284.
+Output includes all graphs found in both main and supplementary figures, .csv files containing significance tests found in figures. Statistical tests related to tables can be found in lines 346-415, 2155-2288, 2810-2854,  and 6246-6303.
 
