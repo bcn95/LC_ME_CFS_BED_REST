@@ -42,7 +42,7 @@ base_size <- 70
 axis_text_rel_size = -1 
 title_text_rel_size = +2
 colours3<-c("#FFFFFF","grey42","#d16014","#00798C")
-date<-"080626"
+date<-"110626"
 setwd("D:/PhD/AGBRESA_LC_ME_CFS/Physical_inactivity_paper/Nat_comm_test/")
 output_folder<-(paste("Physical_inactivity_graphs",date,sep="/"))
 dir.create(file.path(output_folder), showWarnings = FALSE)
@@ -269,7 +269,7 @@ normality_test_resid<-function (input){
 }
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Main"))
 
 
 data<-data %>%
@@ -1890,7 +1890,7 @@ CD_a<-
   ylab(expression(atop("Capillary Density" ,"(Capillaries" ~mm^-2*")")))+
   scale_y_continuous(limits=c(0,850), breaks=seq(0,750,250),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(550), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(650), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
   theme(legend.position = "none",
@@ -2120,7 +2120,7 @@ ggsave(plot=CF_v_FCSA_b,
 
 # Supplemental Figure 1 -----------------------------------------
 
-ME_sx_dat<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx",sheet="ME_pathogen_infection"))
+ME_sx_dat<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx",sheet="ME_pathogen_infection"))
 
 ME_sx_report<-
   ggplot(data=ME_sx_dat,aes(y=Pathogen_type, fill=Pathogen_type))+
@@ -2154,7 +2154,7 @@ ggsave(plot=ME_sx_report,
 
 # Supplemental Figure 2  ----------------------------------------------------
 
-DSQ<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="DSQ_PEM"))
+DSQ<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="DSQ_PEM"))
 
 DSQ_pvals<-as.data.frame(matrix(ncol=length(colnames(DSQ)), nrow=4))
 
@@ -2656,7 +2656,7 @@ ggsave(plot=Pos_PEM,
 
 # Symptom Reports long COVID ---------------------------------
 
-Sx_data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Sx_percentages"))
+Sx_data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Sx_percentages"))
 
 LC_sx<-Sx_data[Sx_data$Session=="LC",]
 
@@ -6076,7 +6076,7 @@ mean(data[data$Session=="LC","TypeI_CF"],na.rm=TRUE);sd(data[data$Session=="LC",
 mean(data[data$Session=="ME","TypeI_CF"],na.rm=TRUE);sd(data[data$Session=="ME","TypeI_CF"],na.rm=TRUE)
 
 
-test2<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx",sheet="FT_CF"))
+test2<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx",sheet="FT_CF"))
 
 remove<-test2[is.na(test2$CF)==TRUE ,"Subject"]
 
@@ -7163,7 +7163,7 @@ ggsave(plot=CF_v_FCSA_HLM,
 
 remove<-data[is.na(data$Rest_lactate)==TRUE ,"Subject"]
 
-test2<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx",sheet="Lactate"))
+test2<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx",sheet="Lactate"))
 
 test2<-test2[!test2$Subject %in% remove ,]
 
@@ -7320,7 +7320,7 @@ ggsave(plot=Lactate_supp,
 # Fibre type proportions by area occuppied ---------------------------------------------------
 
 #initial group tests
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7338,7 +7338,7 @@ Anova(model)
 
 # Stats -------------------------------------------------------------------
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7558,7 +7558,7 @@ stat_test <- tibble::tribble(
   "CON","ME","p<0.001","POST-VIRAL",4  , 75, 3.75, 4.25, 0.01, 0.5,  14, 6,"black",
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 60, 3.75, 4, 0.01, 0.5,  14, 6,"black")
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7698,7 +7698,7 @@ ggsave(plot=fibre_type_b,
 # fibre type FCSA ---------------------------------------------------------
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7894,7 +7894,7 @@ stat_test_b <- tibble::tribble(
   "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 8000, 1.0, 1.25,0.01, 0.01, 30, 10, "black")
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -8039,7 +8039,7 @@ ggsave(plot=fibre_type_FCSA_b,
 # Fibre type proportions by numerical value ---------------------------------------------------
 
 #initial group tests
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="SuppFig7"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="SuppFig7"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -8055,7 +8055,7 @@ Anova(model)
 
 # Stats -------------------------------------------------------------------
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -8277,7 +8277,7 @@ stat_test <- tibble::tribble(
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 70, 3.75, 4, 0.01, 0.5,  14, 6,"black",
   "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 55, 4, 4.25, 0.01, 0.5,  14, 6,"black")
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="SuppFig7"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx.xlsx", sheet="SuppFig7"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
