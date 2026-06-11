@@ -42,7 +42,7 @@ base_size <- 70
 axis_text_rel_size = -1 
 title_text_rel_size = +2
 colours3<-c("#FFFFFF","grey42","#d16014","#00798C")
-date<-"020226"
+date<-"080626"
 setwd("D:/PhD/AGBRESA_LC_ME_CFS/Physical_inactivity_paper/Nat_comm_test/")
 output_folder<-(paste("Physical_inactivity_graphs",date,sep="/"))
 dir.create(file.path(output_folder), showWarnings = FALSE)
@@ -418,7 +418,7 @@ wilcox.test(test2[test2$Session=="LC","Sx_duration"],test2[test2$Session=="ME","
 
 
 # Figure 1 ----------------------------------------------------------------
-# VO2 absolute ------------------------------------------------------------
+# VO2 relative ------------------------------------------------------------
 
 # Stats -------------------------------------------------------------------
 
@@ -440,6 +440,8 @@ test2<-test[!test$Subject %in% remove ,]
 
 
 a<-kruskal.test(VO2_rel~Session, test2[test2$Group=="POST-VIRAL",])
+
+
 all_pvals["ANOVA","VO2_rel"]<-a$p.value
 
 a<-pairwise.wilcox.test(test2[test2$Group=="POST-VIRAL","VO2_rel"], test2[test2$Group=="POST-VIRAL","Session"], p.adjust.method="BH")
@@ -468,6 +470,8 @@ stat_test <- tibble::tribble(
 
 
 plot_data<-data[!data$Subject %in% remove,]
+
+
 
 VO2_rel_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
@@ -608,7 +612,8 @@ stat_test <- tibble::tribble(
   "LC","ME","p<0.001","POST-VIRAL")
 
 
-plot_data<-data[!data$Subject %in% remove,]
+plot_data<-data[!data$Subject %in% remove & !data$Subject %in% remove2,]
+
 
 GET_rel_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
@@ -713,9 +718,11 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","VE_max"]);qqline(test2[test2$Session=="LC","VE_max"])
 # qqnorm(test2[test2$Session=="ME","VE_max"]);qqline(test2[test2$Session=="ME","VE_max"])
 
-model <-lme(VE_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(VE_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(VE_max~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","VE_max"]<-a$`Pr(>Chisq)`
+# all_pvals["ANOVA","VE_max"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","VE_max"]<-a$`Pr(>F)`[1][1]
 
 
 b<-
@@ -734,10 +741,12 @@ all_pvals["POST_VIRAL_test","VE_max"]<-"anova_tukey_post_hoc"
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
-  "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
+  "CON","ME",paste(round(a$`Pr(>F)`[1],3)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
+
+
 
 VE_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
@@ -837,9 +846,11 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","EqCO2_max"]);qqline(test2[test2$Session=="LC","EqCO2_max"])
 # qqnorm(test2[test2$Session=="ME","EqCO2_max"]);qqline(test2[test2$Session=="ME","EqCO2_max"])
 
-model <-lme(EqCO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(EqCO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(EqCO2_max~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","EqCO2_max"]<-a$`Pr(>Chisq)`
+# all_pvals["ANOVA","EqCO2_max"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","EqCO2_max"]<-a$`Pr(>F)`[1]
       
 b<-
   t_test(test2[test2$Group=="BED REST",], EqCO2_max~Session, paired=TRUE)
@@ -856,10 +867,11 @@ all_pvals["POST_VIRAL_test","EqCO2_max"]<-"anova_no_post_hoc"
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
-  "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
+  "CON","ME",paste(round(a$`Pr(>F)`[1],3)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
+
 
 EqCO2_max_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
@@ -972,9 +984,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","FCSA"]);qqline(test2[test2$Session=="LC","FCSA"])
 # qqnorm(test2[test2$Session=="ME","FCSA"]);qqline(test2[test2$Session=="ME","FCSA"])
 
-model <-lme(FCSA~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(FCSA~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(FCSA~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","FCSA"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","FCSA"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test2[test2$Group=="BED REST",], FCSA~Session, paired=TRUE)
@@ -993,11 +1006,12 @@ all_pvals["POST_VIRAL_test","FCSA"]<-"anova_tukey_no_hoc"
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
-  "CON","ME",format(paste(round(a$`Pr(>Chisq)`,3)),nsmall=3),"POST-VIRAL")
+  "CON","ME",format(paste(round(a$`Pr(>F)`[1],3)),nsmall=3),"POST-VIRAL")
 
 
 
 plot_data<-data[!data$Subject %in% remove,]
+
 
 FCSA_a<-
   ggplot(plot_data[plot_data$Group=="BED REST",], 
@@ -1100,11 +1114,11 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","SDH"]);qqline(test2[test2$Session=="LC","SDH"])
 # qqnorm(test2[test2$Session=="ME","SDH"]);qqline(test2[test2$Session=="ME","SDH"])
 
-model <-lme(SDH~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(SDH~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(SDH~Session, data=test2[test2$Group=="POST-VIRAL" ,])
+a<-anova(model)
 
-a<-Anova(model)
-
-all_pvals["ANOVA","SDH"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","SDH"]<-a$`Pr(>F)`[1]
 # post-hoc testing
 a<-
   test2[test2$Group=="POST-VIRAL",] %>% tukey_hsd(SDH~Session)
@@ -1383,10 +1397,10 @@ plot_data<-data[!data$Subject %in% remove, ]
 # df<-list(plot_data[plot_data$Session=="LC",],plot_data[plot_data$Session=="ME",])
 # cocor(~VO2_rel+SDH| VO2_rel  + SDH, df )
 
-model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="BED REST",])
-Anova(model)
-model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
-Anova(model)
+# model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="BED REST",])
+# Anova(model)
+# model<-lm(VO2_rel~SDH*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
+# Anova(model)
 
 
 y<-plot_data$VO2_rel
@@ -1516,10 +1530,10 @@ ggsave(plot=VO2_v_SDH_b,
 remove<-data[is.na(data$Oxphos)==TRUE | is.na(data$VO2_rel)==TRUE | data$membrane_intact>1.1 ,"Subject"]
 plot_data<-data[!data$Subject %in% remove, ]
 
-model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="BED REST",])
-Anova(model)
-model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
-Anova(model)
+# model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="BED REST",])
+# Anova(model)
+# model<-lm(VO2_rel~Oxphos*Session, data=plot_data[plot_data$Group=="POST-VIRAL",])
+# Anova(model)
 
 
 # df<-list(plot_data[plot_data$Session=="BDC",],plot_data[plot_data$Session=="HDT55",])
@@ -1683,9 +1697,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","CF"]);qqline(test2[test2$Session=="LC","CF"])
 # qqnorm(test2[test2$Session=="ME","CF"]);qqline(test2[test2$Session=="ME","CF"])
 
-model <-lme(CF~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(CF~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(CF~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","CF"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","CF"]<-a$`Pr(>F)`[1]
 
 # post-hoc testing
 a<-
@@ -1826,9 +1841,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","CD"]);qqline(test2[test2$Session=="LC","CD"])
 # qqnorm(test2[test2$Session=="ME","CD"]);qqline(test2[test2$Session=="ME","CD"])
 
-model <-lme(CD~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(CD~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(CD~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","CD"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","CD"]<-a$`Pr(>F)`[1]
 
 # post-hoc testing
 a<-
@@ -2827,12 +2843,13 @@ BC_test[,c("Subject","Session","Group", "Sex")]<-BC_data[,c("Subject","Session",
 remove<-BC_test[is.na(BC_test$Age)==TRUE,"Subject"]
 test2<-BC_test[!BC_test$Subject %in% remove, ]
 
-qqnorm(test2[test2$Session=="CON","Age"]);qqline(test2[test2$Session=="CON","Age"]) 
+qqnorm(test2[test2$Session=="BDC","Age"]);qqline(test2[test2$Session=="BDC","Age"]) 
 qqnorm(test2[test2$Session=="CON","Height"]);qqline(test2[test2$Session=="CON","Height"]) 
 qqnorm(test2[test2$Session=="CON","Weight"]);qqline(test2[test2$Session=="CON","Weight"]) 
 
 
-t_test(test2,Age~Session, paired=F)
+
+kruskal.test(Age~Session, test2)
 kruskal.test(Weight~Session, test2)
 kruskal.test(Height~Session, test2)
 
@@ -2913,16 +2930,14 @@ BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 
 
 
-model<-lme(VO2_perc_pred~Session, data=BC_test2,random = ~ 1|Subject, na.action = na.omit, control="optim" )
+a<-t.test(BC_test2[BC_test2$Session=="CON","VO2_perc_pred"], BC_test2[BC_test2$Session=="BDC","VO2_perc_pred"], paired=FALSE)
 
-a<-Anova(model)
-
-BC_pvals["CON-BDC","VO2_perc_pred"]<-a$`Pr(>Chisq)`
+BC_pvals["CON-BDC","VO2_perc_pred"]<-a$p.value
 
 
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
-  "BDC","CON",paste(format(round(a$`Pr(>Chisq)`[1],3), drop0trailing=F)),"BED REST")
+  "BDC","CON",paste(format(round(a$p.value,3), drop0trailing=F)),"BED REST")
 
 
 plot_data<-BC_data[!BC_data$Subject %in% remove,]
@@ -3035,8 +3050,8 @@ remove<-BC_data[is.na(BC_data$GET_perc)==TRUE   ,"Subject"]
 BC_test2<-BC_test[!BC_test$Subject %in% remove,]
 # shapiro.test(BC_test2[BC_test2$Session=="BDC","GET_perc"])
 # shapiro.test(BC_test2[BC_test2$Session=="CON","GET_perc"])
-# qqnorm(BC_test2[BC_test2$Session=="BDC","GET_perc"]);qqline(BC_test2[BC_test2$Session=="BDC","GET_perc"]) 
-# qqnorm(BC_test2[BC_test2$Session=="CON","GET_perc"]);qqline(BC_test2[BC_test2$Session=="CON","GET_perc"]) 
+# qqnorm(BC_test2[BC_test2$Session=="BDC","GET_perc"]);qqline(BC_test2[BC_test2$Session=="BDC","GET_perc"])
+# qqnorm(BC_test2[BC_test2$Session=="CON","GET_perc"]);qqline(BC_test2[BC_test2$Session=="CON","GET_perc"])
 
 
 a<-
@@ -3867,9 +3882,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="ME","EqO2_max"]);qqline(test2[test2$Session=="ME","EqO2_max"])
 
 
-model <-lme(EqO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(EqO2_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(EqO2_max~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","EqO2_max"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","EqO2_max"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test2[test2$Group=="BED REST",], EqO2_max~Session, paired=TRUE)
@@ -3886,7 +3902,7 @@ all_pvals["POST_VIRAL_test","EqO2_max"]<-"anova_no_post_hoc"
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
-  "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
+  "CON","ME",paste(round(a$`Pr(>F)`[1],3)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -4001,10 +4017,10 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 # qqnorm(test2[test2$Session=="ME","VE_VCO2_slope"]);qqline(test2[test2$Session=="ME","VE_VCO2_slope"])
 
 
-model <-lme(VE_VCO2_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(VE_VCO2_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(VE_VCO2_slope~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","VE_VCO2_slope"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","VE_VCO2_slope"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test2[test2$Group=="BED REST",], VE_VCO2_slope~Session, paired=TRUE)
@@ -4021,7 +4037,7 @@ all_pvals["POST_VIRAL_test","VE_VCO2_slope"]<-"anova_no_post_hoc"
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
-  "CON","ME",paste(format(round(a$`Pr(>Chisq)`,3),nsmall=3)),"POST-VIRAL")
+  "CON","ME",paste(format(round(a$`Pr(>F)`[1],3),nsmall=3)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove & !data$Subject %in% remove2,]
@@ -4123,9 +4139,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","O2_pulse"]);qqline(test2[test2$Session=="LC","O2_pulse"])
 # qqnorm(test2[test2$Session=="ME","O2_pulse"]);qqline(test2[test2$Session=="ME","O2_pulse"])
 
-model <-lme(O2_pulse~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(O2_pulse~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(O2_pulse~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","O2_pulse"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","O2_pulse"]<-a$`Pr(>F)`[1]
 
 # post-hoc testing 
 a<-
@@ -4162,7 +4179,7 @@ O2_pulse_a<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression(~O[2]*"-pulse (L"~beat^-1*")"))+
+  ylab(expression(~O[2]*"-pulse (mL"~beat^-1*")"))+
   scale_y_continuous(limits=c(0,30), breaks=seq(0,25,5),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(25), bracket.size=2,
@@ -4203,7 +4220,7 @@ O2_pulse_b<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="BED REST","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression(~O[2]*"-pulse (L"~beat^-1*")"))+
+  ylab(expression(~O[2]*"-pulse (mL"~beat^-1*")"))+
   scale_y_continuous(limits=c(0,30), breaks=seq(0,25,5),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(27), bracket.size=2,
@@ -4260,9 +4277,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","HR_max"]);qqline(test2[test2$Session=="LC","HR_max"])
 # qqnorm(test2[test2$Session=="ME","HR_max"]);qqline(test2[test2$Session=="ME","HR_max"])
 
-model <-lme(HR_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(HR_max~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(HR_max~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","HR_max"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","HR_max"]<-a$`Pr(>F)`[1]
 
 
 b<-
@@ -4278,7 +4296,7 @@ all_pvals["POST_VIRAL_test","HR_max"]<-"anova_no_post_hoc"
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj, ~Group,
   "BDC","HDT55","p<0.001","BED REST",
-  "CON","ME",paste(round(a$`Pr(>Chisq)`,3)),"POST-VIRAL")
+  "CON","ME",paste(round(a$`Pr(>F)`[1],3)),"POST-VIRAL")
 
 
 plot_data<-data[!data$Subject %in% remove,]
@@ -4503,7 +4521,7 @@ ggsave(plot=AHRR_b,
        filename = paste(output_folder,"/AHRR_b_",date,".png", sep = ""),
        device="png",  width = 9, height = 14, units = "in")
 
-# VO2-Heart rate slope ----------------------------------------------------
+# Heart rate-VO2 slope ----------------------------------------------------
 # Stats -------------------------------------------------------------------
 
 # mean(data[data$Session=="BDC","VO2_HR_slope"],na.rm=TRUE); sd(data[data$Session=="BDC","VO2_HR_slope"],na.rm=TRUE)
@@ -4523,10 +4541,10 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 # qqnorm(test2[test2$Session=="LC","VO2_HR_slope"]);qqline(test2[test2$Session=="LC","VO2_HR_slope"])
 # qqnorm(test2[test2$Session=="ME","VO2_HR_slope"]);qqline(test2[test2$Session=="ME","VO2_HR_slope"])
 
-model <-lme(VO2_HR_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(VO2_HR_slope~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(VO2_HR_slope~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","VO2_HR_slope"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","VO2_HR_slope"]<-a$`Pr(>F)`[1]
 # post-hoc testing 
 a<-
   test2[test2$Group=="POST-VIRAL",] %>% tukey_hsd(VO2_HR_slope~Session)
@@ -4564,7 +4582,7 @@ VO2_HR_slope_a<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="POST-VIRAL","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("V\U0307" ~O[2]*"-Heart Rate slope"))+
+  ylab(bquote(atop("Heart Rate-V\U0307"~O[2]* "slope","(beats"~L^-1*")")))+
   scale_y_continuous(limits=c(0,110), breaks=seq(0,90,30),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
   stat_pvalue_manual(data=stat_test[1,], label = "p.adj",y.position=c(60), bracket.size=2,
@@ -4602,7 +4620,7 @@ VO2_HR_slope_b<-
   geom_boxplot(linewidth=2, outlier.shape = NA, coef=0,width=1.5/length(unique(plot_data[plot_data$Group=="BED REST","Session"])))+
   geom_point(size=6,stroke=2 , shape=21,position = position_jitter(width=0.2, height=0, seed=1), fill="white", colour="black")+
   scale_fill_manual(values = c("CON"=colours3[1],"BDC"=colours3[1], "HDT55"=colours3[2], "LC"=colours3[3], "ME"=colours3[4]))+
-  ylab(expression("V\U0307" ~O[2]*"-Heart Rate slope"))+
+  ylab(bquote(atop("Heart Rate-V\U0307"~O[2]* "slope","(beats"~L^-1*")")))+
   theme(legend.position = "none",
         axis.line=element_line(colour="black", size = line_size),
         axis.ticks = element_blank(),
@@ -4624,7 +4642,7 @@ VO2_HR_slope_b<-
   scale_y_continuous(limits=c(0,110), breaks=seq(0,90,30),expand=c(0,0))+
   scale_y_continuous(limits=c(0,120), breaks=seq(0,90,30),expand=c(0,0))+
   scale_x_discrete(labels=c("BDC"="PRE", "HDT55"="POST","CON"="CON ","LC"="LC","ME"="ME"))+
-  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(100), bracket.size=2,
+  stat_pvalue_manual(data=stat_test[2,], label = "p.adj",y.position=c(102), bracket.size=2,
                      label.size=14,tip.length = c(0.02,0.02),
                      linetype="solid", inherit.aes=FALSE)+
   stat_pvalue_manual(data=stat_test[3,], label = "p.adj",y.position=c(95), bracket.size=2,
@@ -4661,10 +4679,10 @@ test2<-test[!test$Subject %in% remove & !test$Subject %in% remove2,]
 # qqnorm(test2[test2$Session=="ME","VE_VCO2_slope_submax"]);qqline(test2[test2$Session=="ME","VE_VCO2_slope_submax"])
 
 
-model <-lme(VE_VCO2_slope_submax~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(VE_VCO2_slope_submax~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(VE_VCO2_slope_submax~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","VE_VCO2_slope_submax"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","VE_VCO2_slope_submax"]<-a$`Pr(>F)`[1]
 # post-hoc testing 
 a<-
   test2[test2$Group=="POST-VIRAL",] %>% tukey_hsd(VE_VCO2_slope_submax~Session)
@@ -4797,9 +4815,10 @@ test2<-test[!test$Subject %in% remove ,]
 # qqnorm(test2[test2$Session=="LC","HR_rest"]);qqline(test2[test2$Session=="LC","HR_rest"])
 # qqnorm(test2[test2$Session=="ME","HR_rest"]);qqline(test2[test2$Session=="ME","HR_rest"])
 
-model <-lme(HR_rest~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(HR_rest~ Session, data=test2[test2$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(HR_rest~Session, data=test2[test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","HR_rest"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","HR_rest"]<-a$`Pr(>F)`[1]
 # post-hoc testing 
 a<-
   test2[test2$Group=="POST-VIRAL",] %>% tukey_hsd(HR_rest~Session)
@@ -6191,7 +6210,7 @@ Fibre_type_CF_b<-
                                Session="LC",
                                label = paste("Group: p<0.001","\n",
                                              "Fibre Type: p<0.001","\n",
-                                             "Interaction: p=",format(round(a$`Pr(>F)`[3],3), drop0trailing=F),
+                                             "Interaction: p=",format(round(a$`Pr(>F)`[1][3],3), drop0trailing=F),
                                              sep="")),
              aes(label = label, group=Session,x=x,y=y), size = 10,label.size = 2, inherit.aes=F)+
   theme(legend.position = "none",
@@ -6296,7 +6315,7 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 # qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_rel"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_rel"])
 
 a<-
-  kruskal.test(VO2_rel~Session, data=HLM_test)
+  kruskal.test(VO2_rel~Session, data=HLM_test2)
 
 HLM_pvals["ANOVA","VO2_rel"]<-a$p.value
 
@@ -6354,17 +6373,21 @@ ggsave(plot=VO2_HLM,
 
 remove<-HLM_data[is.na(HLM_data$VO2_perc_pred)==TRUE   ,"Subject"]
 HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
-shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"])
-shapiro.test(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
-shapiro.test(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
-qqnorm(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"])
-qqnorm(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
-qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
+# shapiro.test(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
+# qqnorm(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="HDT55","VO2_perc_pred"])
+# qqnorm(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
+# qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
 
 model<-lme(VO2_perc_pred~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model<-lm(VO2_perc_pred~Session, data=HLM_test2[HLM_test2$Group=="POST-VIRAL" ,])
+a<-Anova(model)
 
-a<-anova(model)
+a<-
+  kruskal.test(VO2_perc_pred~Session, data=HLM_test2)
 
+HLM_pvals["ANOVA","VO2_perc_pred"]<-a$`Pr(>F)`[1]
 a<-
   HLM_test2 %>% tukey_hsd(VO2_perc_pred~Session)
 
@@ -6432,9 +6455,10 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 # qqnorm(HLM_test2[HLM_test2$Session=="LC","GET_rel"]);qqline(HLM_test2[HLM_test2$Session=="LC","GET_rel"])
 # qqnorm(HLM_test2[HLM_test2$Session=="ME","GET_rel"]);qqline(HLM_test2[HLM_test2$Session=="ME","GET_rel"])
 
-model<-lme(GET_rel~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model<-lme(GET_rel~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(GET_rel~Session, data=HLM_test2[HLM_test2$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-HLM_pvals["ANOVA","GET_rel"]<-a$`Pr(>Chisq)`
+HLM_pvals["ANOVA","GET_rel"]<-a$`Pr(>F)`[1]
 
 a<-
   HLM_test2 %>% tukey_hsd(GET_rel~Session)
@@ -6588,10 +6612,10 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 # qqnorm(HLM_test2[HLM_test2$Session=="LC","SDH"]);qqline(HLM_test2[HLM_test2$Session=="LC","SDH"])
 # qqnorm(HLM_test2[HLM_test2$Session=="ME","SDH"]);qqline(HLM_test2[HLM_test2$Session=="ME","SDH"])
 
-model<-lme(SDH~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-
-a<-anova(model)
-HLM_pvals["ANOVA","SDH"]<-a$`p-value`[2]
+# model<-lme(SDH~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(SDH~Session, data=test2[test2$Group=="POST-VIRAL" ,])
+a<-Anova(model)
+HLM_pvals["ANOVA","SDH"]<-a$`Pr(>F)`[1]
 a<-
   HLM_test2 %>% tukey_hsd(SDH~Session)
 HLM_pvals["HDT55-ME","SDH"]<-a$p.adj[2]
@@ -6740,9 +6764,10 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 # qqnorm(HLM_test2[HLM_test2$Session=="ME","CF"]);qqline(HLM_test2[HLM_test2$Session=="ME","CF"])
 
 
-model<-lme(CF~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-a<-anova(model)
-HLM_pvals["ANOVA","CF"]<-a$`p-value`[2]
+# model<-lme(CF~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(CF~Session, data=test2[test2$Group=="POST-VIRAL" ,])
+a<-Anova(model)
+HLM_pvals["ANOVA","CF"]<-a$`Pr(>F)`[1]
 
 a<-
   HLM_test2 %>% tukey_hsd(CF~Session)
@@ -7294,6 +7319,23 @@ ggsave(plot=Lactate_supp,
 # Figure 2C ---------------------------------------------------------------
 # Fibre type proportions by area occuppied ---------------------------------------------------
 
+#initial group tests
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Fig2a"))
+
+data<-data %>%
+  mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
+
+test<-as.data.frame(box_cox_transform(data))
+test[,c("Subject","Session","Group","Sex","Fibre_type")]<-data[,c("Subject","Session","Group","Sex","Fibre_type")]
+
+model<-lmer(Percent~Session*Fibre_type+ (1|Subject), data=test[test$Group=="BED REST",], na.action = na.omit)
+Anova(model)
+
+model<-lmer(Percent~Session*Fibre_type+ (1|Subject), data=test[test$Group=="POST-VIRAL",], na.action = na.omit)
+Anova(model)
+
+
+
 # Stats -------------------------------------------------------------------
 
 data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
@@ -7368,10 +7410,10 @@ test_norm<-normality_test(test)
 # qqnorm(test[test$Session=="LC","Percent_I"]);qqline(test[test$Session=="LC","Percent_I"])
 # qqnorm(test[test$Session=="ME","Percent_I"]);qqline(test[test$Session=="ME","Percent_I"])
 
-model <-lme(Percent_I~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(Percent_I~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(Percent_I~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","Percent_I"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","Percent_I"]<-a$`Pr(>F)`[1]
 
 a<-
   test[test$Group=="POST-VIRAL",] %>% tukey_hsd(Percent_I~Session)   
@@ -7395,10 +7437,10 @@ all_pvals["POST_VIRAL_test","Percent_I"]<-"anova_tukey_post_hoc"
 # qqnorm(test[test$Session=="LC","Percent_I_IIa"]);qqline(test[test$Session=="LC","Percent_I_IIa"])
 # qqnorm(test[test$Session=="ME","Percent_I_IIa"]);qqline(test[test$Session=="ME","Percent_I_IIa"])
 
-model <-lme(Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(Percent_I_IIa~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","Percent_I_IIa"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","Percent_I_IIa"]<-a$`Pr(>F)`[1]
 b<-
   t_test(test[test$Group=="BED REST",], Percent_I_IIa~Session, paired=TRUE)
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
@@ -7418,8 +7460,9 @@ all_pvals["POST_VIRAL_test","Percent_I_IIa"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="ME","Percent_IIa"]);qqline(test[test$Session=="ME","Percent_IIa"])
 
 model <-lme(Percent_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(VO2_HR_slope~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","Percent_IIa"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","Percent_IIa"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test[test$Group=="BED REST",], Percent_IIa~Session, paired=TRUE)
@@ -7439,9 +7482,10 @@ all_pvals["POST_VIRAL_test","Percent_IIa"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="LC","Percent_IIa_IIx"]);qqline(test[test$Session=="LC","Percent_IIa_IIx"])
 # qqnorm(test[test$Session=="ME","Percent_IIa_IIx"]);qqline(test[test$Session=="ME","Percent_IIa_IIx"])
 
-model <-lme(Percent_IIa_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(Percent_IIa_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(Percent_IIa_IIx~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","Percent_IIa_IIx"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","Percent_IIa_IIx"]<-a$`Pr(>F)`[1]
 a<-
   test[test$Group=="POST-VIRAL",] %>% tukey_hsd(Percent_IIa_IIx~Session)
 b<-
@@ -7464,9 +7508,10 @@ all_pvals["POST_VIRAL_test","Percent_IIa_IIx"]<-"anova_tukey_post_hoc"
 # qqnorm(test[test$Session=="LC","Percent_IIx"]);qqline(test[test$Session=="LC","Percent_IIx"])
 # qqnorm(test[test$Session=="ME","Percent_IIx"]);qqline(test[test$Session=="ME","Percent_IIx"])
 
-model <-lme(Percent_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+# model <-lme(Percent_IIx~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(Percent_IIx~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","Percent_IIx"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","Percent_IIx"]<-a$`Pr(>F)`[1]
 b<-
   t_test(test[test$Group=="BED REST",], Percent_IIx~Session, paired=TRUE)
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
@@ -7688,7 +7733,6 @@ test<-test %>%
   filter_all(all_vars(!is.infinite(.)))
 test[,c("Subject","Session","Group","Sex")]<-data[,c("Subject","Session","Group","Sex")]
 test_norm<-normality_test(test)
-test2<-test[!test$Subject %in% remove,]
 
 
 # mean(data[data$Session=="BDC","TypeI_FCSA"],na.rm=TRUE); sd(data[data$Session=="BDC","TypeI_FCSA"],na.rm=TRUE)
@@ -7728,10 +7772,10 @@ test2<-test[!test$Subject %in% remove,]
 # qqnorm(test[test$Session=="LC","TypeI_FCSA"]);qqline(test[test$Session=="LC","TypeI_FCSA"])
 # qqnorm(test[test$Session=="ME","TypeI_FCSA"]);qqline(test[test$Session=="ME","TypeI_FCSA"])
 
-model <-lme(TypeI_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(TypeI_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(TypeI_FCSA~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","TypeI_FCSA"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","TypeI_FCSA"]<-a$`Pr(>F)`[1]
 # post-hoc testing    
 a<-
   test[test$Group=="POST-VIRAL",] %>% tukey_hsd(TypeI_FCSA~Session)   
@@ -7756,10 +7800,10 @@ all_pvals["POST_VIRAL_test","TypeI_FCSA"]<-"anova_tukey_post_hoc"
 # qqnorm(test[test$Session=="ME","TypeI_IIa_FCSA"]);qqline(test[test$Session=="ME","TypeI_IIa_FCSA"])
 
 
-model <-lme(TypeI_IIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(TypeI_IIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(TypeI_IIa_FCSA~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","TypeI_IIa_FCSA"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","TypeI_IIa_FCSA"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test[test$Group=="BED REST",], TypeI_IIa_FCSA~Session, paired=TRUE)
@@ -7777,10 +7821,10 @@ all_pvals["POST_VIRAL_test","TypeI_IIa_FCSA"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="LC","TypeIIa_FCSA"]);qqline(test[test$Session=="LC","TypeIIa_FCSA"])
 # qqnorm(test[test$Session=="ME","TypeIIa_FCSA"]);qqline(test[test$Session=="ME","TypeIIa_FCSA"])
 
-model <-lme(TypeIIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(TypeIIa_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(TypeIIa_FCSA~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","TypeIIa_FCSA"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","TypeIIa_FCSA"]<-a$`Pr(>F)`[1]
 b<-
   t_test(test[test$Group=="BED REST",], TypeIIa_FCSA~Session, paired=TRUE)
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
@@ -7797,10 +7841,10 @@ all_pvals["POST_VIRAL_test","TypeIIa_FCSA"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="LC","Type_IIa_IIx_FCSA"]);qqline(test[test$Session=="LC","Type_IIa_IIx_FCSA"])
 # qqnorm(test[test$Session=="ME","Type_IIa_IIx_FCSA"]);qqline(test[test$Session=="ME","Type_IIa_IIx_FCSA"])
 
-model <-lme(Type_IIa_IIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(Type_IIa_IIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(Type_IIa_IIx_FCSA~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","Type_IIa_IIx_FCSA"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","Type_IIa_IIx_FCSA"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test[test$Group=="BED REST",], Type_IIa_IIx_FCSA~Session, paired=TRUE)
@@ -7819,10 +7863,10 @@ all_pvals["POST_VIRAL_test","Type_IIa_IIx_FCSA"]<-"anova_no_post_hoc"
 # qqnorm(test[test$Session=="LC","TypeIIx_FCSA"]);qqline(test[test$Session=="LC","TypeIIx_FCSA"])
 # qqnorm(test[test$Session=="ME","TypeIIx_FCSA"]);qqline(test[test$Session=="ME","TypeIIx_FCSA"])
 
-model <-lme(TypeIIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(TypeIIx_FCSA~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(TypeIIx_FCSA~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","TypeIIx_FCSA"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","TypeIIx_FCSA"]<-a$`Pr(>F)`[1]
 
 b<-
   t_test(test[test$Group=="BED REST",], TypeIIx_FCSA~Session, paired=TRUE)
@@ -7994,6 +8038,21 @@ ggsave(plot=fibre_type_FCSA_b,
 
 # Fibre type proportions by numerical value ---------------------------------------------------
 
+#initial group tests
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="SuppFig7"))
+
+data<-data %>%
+  mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
+
+test<-as.data.frame(box_cox_transform(data))
+test[,c("Subject","Session","Group","Fibre_type")]<-data[,c("Subject","Session","Group","Fibre_type")]
+
+model<-lmer(Percent~Session*Fibre_type+ (1|Subject), data=test[test$Group=="BED REST",], na.action = na.omit)
+Anova(model)
+
+model<-lmer(Percent~Session*Fibre_type+ (1|Subject), data=test[test$Group=="POST-VIRAL",], na.action = na.omit)
+Anova(model)
+
 # Stats -------------------------------------------------------------------
 
 data<-as.data.frame(read_xlsx("Manuscript_data_clean_020226.xlsx", sheet="Main"))
@@ -8099,10 +8158,10 @@ all_pvals["POST_VIRAL_test","FT_Percent_I"]<-"kruskal_pw_wilcoxon_post_hoc"
 # qqnorm(test[test$Session=="LC","FT_Percent_I_IIa"]);qqline(test[test$Session=="LC","FT_Percent_I_IIa"])
 # qqnorm(test[test$Session=="ME","FT_Percent_I_IIa"]);qqline(test[test$Session=="ME","FT_Percent_I_IIa"])
 
-model <-lme(FT_Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
-
+# model <-lme(FT_Percent_I_IIa~ Session, data=test[test$Group=="POST-VIRAL" ,], random = ~ 1|Subject, na.action = na.omit, control="optim")
+model<-lm(FT_Percent_I_IIa~Session, data=test[test$Group=="POST-VIRAL" ,])
 a<-Anova(model)
-all_pvals["ANOVA","FT_Percent_I_IIa"]<-a$`Pr(>Chisq)`
+all_pvals["ANOVA","FT_Percent_I_IIa"]<-a$`Pr(>F)`[1]
 b<-
   t_test(test[test$Group=="BED REST",], FT_Percent_I_IIa~Session, paired=TRUE)
 b<-add_significance(b, cutpoints = c(0,1e-04, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))
@@ -8208,14 +8267,12 @@ all_pvals["BED_REST_test","FT_Percent_IIa_IIx_IIx"]<-"wilcoxon"
 all_pvals["POST_VIRAL_test","FT_Percent_IIa_IIx_IIx"]<-"kruskal_pw_wilcoxon_post_hoc"
 
 
-# to fix ------------------------------------------------------------------
-
 
 stat_test <- tibble::tribble(
   ~group1, ~group2, ~p.adj.signif, ~Group, ~Fibre_type, ~y.coord, ~x_min,~x_max, ~tip1,~tip2, ~label_size, ~bracket_size, ~colours,
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","FT_Percent_I"]),3), drop0trailing=F)),"POST-VIRAL",1  , 100, 0.75, 1,   0.01, 0.5,  14, 6,"black",
   "CON","ME","p<0.001","POST-VIRAL",1  ,115 , 0.75, 1.25,0.01, 0.5,  14, 6,"black",
-  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_I"]),3), drop0trailing=F)),"POST-VIRAL",1  , 85, 1, 1.25,     0.01, 0.5,  14, 6,"black",
+  "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_I"]),3), drop0trailing=F)),"POST-VIRAL",1  , 90, 1, 1.25,     0.01, 0.5,  14, 6,"black",
   "CON","ME","p=0.001","POST-VIRAL",4  , 85, 3.75, 4.25, 0.01, 0.5,  14, 6,"black",
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 70, 3.75, 4, 0.01, 0.5,  14, 6,"black",
   "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 55, 4, 4.25, 0.01, 0.5,  14, 6,"black")
