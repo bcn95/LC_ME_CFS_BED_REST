@@ -269,7 +269,7 @@ normality_test_resid<-function (input){
 }
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Manuscript_data_clean_anonymized_030726_clean.xlsx", sheet="Main"))
 
 
 data<-data %>%
@@ -288,26 +288,10 @@ data$Leak_norm<-data$Leak/data$SDH
 data$membrane_intact<-data$N_linked/data$ADP
 data$Percent_IIa_IIx_IIx<-data$Percent_IIa_IIx+data$Percent_IIx
 
-data$GET_rel<-(data$GET/data$Weight)*1000
-data$GET_perc<-data$GET_rel/data$VO2_rel
-
-# FRIEND VO2 prediction eqn (per: doi: 10.1016/j.pcad.2017.03.00)-----------------------------------------------
-
-data$Weight_lbs<-data$Weight*2.2
-data$gender<-ifelse(data$Sex=="Female",1,0)
-
-data$VO2_pred<-79.9-(0.39*data$Age)-(13.7*data$gender)-(0.127*data$Weight_lbs)
-
-data$VO2_perc_pred<-data$VO2_rel/data$VO2_pred
-
-data$GET_rel_perc_pred<-data$GET_rel/data$VO2_pred
-
-# Wasserman predicted VO2 -------------------------------------------------
 
 
-data$VO2_perc_pred_wasserman<-ifelse(data$Sex=="Female",(data$VO2_abs*1000)/((data$Weight + 43) * (22.78 - (0.17*data$Age))),
-                                     (data$VO2_abs*1000)/(data$Weight * (50.72 -(0.372* data$Age))))
 
+# set results tables ------------------------------------------------------
 
 
 all_pvals<-as.data.frame(matrix(ncol=length(colnames(data)), nrow=7))
@@ -317,6 +301,8 @@ rownames(all_pvals)<-c("BDC-HDT55","BED_REST_test","CON-ME","CON-LC","LC-ME","AN
 
 cor_pvals<-as.data.frame(matrix(ncol=6))
 colnames(cor_pvals)<-c("p_value","r","Session","Group","p_value.signif","comparison")
+
+
 
 
 # Check normality ---------------------------------------------------------
@@ -343,25 +329,7 @@ test[,c("Subject","Session","Group", "Sex")]<-data[,c("Subject","Session","Group
 test_norm<-normality_test(test)
 
 
-# Medians for table 1 -----------------------------------------------------
-
-median(data[data$Session=="BDC","Age"],na.rm=TRUE); iqr(data[data$Session=="BDC","Age"], na.rm=TRUE); quantile(data[data$Session=="BDC","Age"], na.rm=TRUE)
-median(data[data$Session=="HDT55","Age"],na.rm=TRUE); IQR(data[data$Session=="HDT55","Age"], na.rm=TRUE);quantile(data[data$Session=="HDT55","Age"], na.rm=TRUE)
-median(data[data$Session=="CON","Age"],na.rm=TRUE); IQR(data[data$Session=="CON","Age"], na.rm=TRUE); quantile(data[data$Session=="CON","Age"], na.rm=TRUE)
-median(data[data$Session=="LC","Age"],na.rm=TRUE); IQR(data[data$Session=="LC","Age"], na.rm=TRUE); quantile(data[data$Session=="LC","Age"], na.rm=TRUE)
-median(data[data$Session=="ME","Age"],na.rm=TRUE); IQR(data[data$Session=="ME","Age"], na.rm=TRUE); quantile(data[data$Session=="ME","Age"], na.rm=TRUE)
-
-median(data[data$Session=="BDC","Height"],na.rm=TRUE); IQR(data[data$Session=="BDC","Height"], na.rm=TRUE); quantile(data[data$Session=="BDC","Height"], na.rm=TRUE)
-median(data[data$Session=="HDT55","Height"],na.rm=TRUE); IQR(data[data$Session=="HDT55","Height"], na.rm=TRUE); quantile(data[data$Session=="HDT55","Height"], na.rm=TRUE)
-median(data[data$Session=="CON","Height"],na.rm=TRUE); IQR(data[data$Session=="CON","Height"], na.rm=TRUE); quantile(data[data$Session=="CON","Height"], na.rm=TRUE)
-median(data[data$Session=="LC","Height"],na.rm=TRUE); IQR(data[data$Session=="LC","Height"], na.rm=TRUE); quantile(data[data$Session=="LC","Height"], na.rm=TRUE)
-median(data[data$Session=="ME","Height"],na.rm=TRUE); IQR(data[data$Session=="ME","Height"], na.rm=TRUE); quantile(data[data$Session=="ME","Height"], na.rm=TRUE)
-
-median(data[data$Session=="BDC","Weight"],na.rm=TRUE); IQR(data[data$Session=="BDC","Weight"], na.rm=TRUE); quantile(data[data$Session=="BDC","Weight"], na.rm=TRUE)
-median(data[data$Session=="HDT55","Weight"],na.rm=TRUE); IQR(data[data$Session=="HDT55","Weight"], na.rm=TRUE); quantile(data[data$Session=="HDT55","Weight"], na.rm=TRUE)
-median(data[data$Session=="CON","Weight"],na.rm=TRUE); IQR(data[data$Session=="CON","Weight"], na.rm=TRUE); quantile(data[data$Session=="CON","Weight"], na.rm=TRUE)
-median(data[data$Session=="LC","Weight"],na.rm=TRUE); IQR(data[data$Session=="LC","Weight"], na.rm=TRUE); quantile(data[data$Session=="LC","Weight"], na.rm=TRUE)
-median(data[data$Session=="ME","Weight"],na.rm=TRUE); IQR(data[data$Session=="ME","Weight"], na.rm=TRUE); quantile(data[data$Session=="ME","Weight"], na.rm=TRUE)
+# Medians for table 1 (Age, Height, Weight Removed for privacy laws) -----------------------------------------------------
 
 median(data[data$Session=="BDC","Steps"],na.rm=TRUE); IQR(data[data$Session=="BDC","Steps"], na.rm=TRUE); quantile(data[data$Session=="BDC","Steps"], na.rm=TRUE)
 median(data[data$Session=="HDT55","Steps"],na.rm=TRUE); IQR(data[data$Session=="HDT55","Steps"], na.rm=TRUE); quantile(data[data$Session=="HDT55","Steps"], na.rm=TRUE)
@@ -374,15 +342,7 @@ median(data[data$Session=="LC","Sx_duration"],na.rm=TRUE); IQR(data[data$Session
 median(data[data$Session=="ME","Sx_duration"],na.rm=TRUE); IQR(data[data$Session=="ME","Sx_duration"], na.rm=TRUE); quantile(data[data$Session=="ME","Sx_duration"], na.rm=TRUE)
 
 
-# Age and Sex between cohorts ---------------------------------------------
-remove<-test[is.na(test$Age)==TRUE,"Subject"]
-test2<-test[!test$Subject %in% remove, ]
-test2<-test2[test2$Session!="HDT55",]
-
-kruskal.test(Age~Session, test2)
-
-a<-pairwise.wilcox.test(test2$Age, test2$Session, p.adjust.method="BH")
-
+#  Sex Differences cohorts ---------------------------------------------
 
 remove<-test[is.na(test$Sex)==TRUE,"Subject"]
 test2<-test[!test$Subject %in% remove, ]
@@ -2810,9 +2770,9 @@ ggsave(plot=ME_sx_plot,
 # Supplemental figure 4 ----------------------------------------------------------
 
 
-selection<-c("K","N","W","G","U","B","T","R1","J","C","L","E","F","D","H","V","M",
-             "P110151","P110150","P110106","P110089","P110088","P110096","P110139","P110061","P110140","P110109","P110090","P110097","P110110",
-             "P110099","P110132","P110152","P110098")
+selection<-c( "P2",   "P3" ,  "P4" ,  "P5" ,  "P6",   "P7" ,  "P8",   "P9" ,  "P10" , "P11",  "P12" , "P13" , "P16" , "P18" ,
+              "P19" , "P20" , "P21" , "P50" , "P53" , "P54" ,"P55" , "P56" , "P57" , "P58",  "P59" , "P64" , "P66" , "P67" ,
+              "P86" , "P92",  "P93" , "P103", "P104", "P105")
 
 BC_data<-data[data$Subject %in% selection & data$Session!="HDT55",]
 
@@ -2821,38 +2781,11 @@ BC_pvals<-as.data.frame(matrix(ncol=90, nrow=1))
 colnames(BC_pvals)<-colnames(BC_data)
 rownames(BC_pvals)<-c("CON-BDC")
 
-median(BC_data[BC_data$Session=="BDC","Age"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="BDC","Age"], na.rm=TRUE)
-median(BC_data[BC_data$Session=="CON","Age"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="CON","Age"], na.rm=TRUE)
-
-median(BC_data[BC_data$Session=="BDC","Height"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="BDC","Height"], na.rm=TRUE)
-median(BC_data[BC_data$Session=="CON","Height"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="CON","Height"], na.rm=TRUE)
-
-median(BC_data[BC_data$Session=="BDC","Weight"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="BDC","Weight"], na.rm=TRUE)
-median(BC_data[BC_data$Session=="CON","Weight"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="CON","Weight"], na.rm=TRUE)
-
-median(BC_data[BC_data$Session=="CON","Steps"],na.rm=TRUE);quantile(BC_data[BC_data$Session=="CON","Steps"], na.rm=TRUE)
-
-length(BC_data[BC_data$Session=="BDC" & BC_data$Sex=="Female","Age"])/length(BC_data[BC_data$Session=="BDC","Age"])
-length(BC_data[BC_data$Session=="CON" & BC_data$Sex=="Female","Age"])/length(BC_data[BC_data$Session=="CON","Age"])
-
-length(BC_data$Age)
-
 BC_test<-as.data.frame(box_cox_transform(BC_data))
 BC_test[,c("Subject","Session","Group", "Sex")]<-BC_data[,c("Subject","Session","Group","Sex")]
 
-remove<-BC_test[is.na(BC_test$Age)==TRUE,"Subject"]
+remove<-BC_test[is.na(BC_test$Sex)==TRUE,"Subject"]
 test2<-BC_test[!BC_test$Subject %in% remove, ]
-
-qqnorm(test2[test2$Session=="BDC","Age"]);qqline(test2[test2$Session=="BDC","Age"]) 
-qqnorm(test2[test2$Session=="CON","Height"]);qqline(test2[test2$Session=="CON","Height"]) 
-qqnorm(test2[test2$Session=="CON","Weight"]);qqline(test2[test2$Session=="CON","Weight"]) 
-
-
-
-kruskal.test(Age~Session, test2)
-kruskal.test(Weight~Session, test2)
-kruskal.test(Height~Session, test2)
-
 
 # BC VO2 ------------------------------------------------------------------
 remove<-BC_data[is.na(BC_data$VO2_rel)==TRUE   ,"Subject"]
@@ -6247,9 +6180,10 @@ ggsave(plot=Fibre_type_CF_b,
 
 # HDT55 v LC v ME ---------------------------------------------------------
 
-selection<-c("K","N","G","P","Q1","U","T","L","C","E","F","D","H",
-             "P110068","P110050","P110087","P110017","P110058","P110086","P110078","P110079","P110056","P110066","P110053","P110010","P110012",
-             "P110118","P110138","P110117","P110141","P110128","P110129","P110144","P110142","P110122","P110120","P110134","P110143","P110124")
+
+selection<-c( "P3",  "P4",  "P5" , "P6" , "P7" , "P8" , "P10" ,"P11" ,"P13", "P14", "P15", "P18", "P19", "P27" ,"P28", "P29" ,
+              "P31", "P32", "P34" ,"P35" ,"P40", "P42", "P44","P45", "P48", "P49", "P72", "P73", "P75", "P77", "P79", "P82" ,
+              "P83", "P88", "P91", "P94", "P95" ,"P96", "P97")
 
 HLM_data<-data[data$Subject %in% selection & data$Session!="BDC",]
 
@@ -6258,47 +6192,18 @@ HLM_pvals<-as.data.frame(matrix(ncol=90, nrow=4))
 colnames(HLM_pvals)<-colnames(HLM_data)
 rownames(HLM_pvals)<-c("ANOVA","HDT55-ME","HDT55-LC","LC-ME")
 
-median(HLM_data[HLM_data$Session=="HDT55","Age"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="HDT55","Age"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="LC","Age"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="LC","Age"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="ME","Age"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="ME","Age"], na.rm=TRUE)
-
-median(HLM_data[HLM_data$Session=="HDT55","Height"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="HDT55","Height"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="LC","Height"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="LC","Height"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="ME","Height"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="ME","Height"], na.rm=TRUE)
-
-
-median(HLM_data[HLM_data$Session=="HDT55","Weight"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="HDT55","Weight"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="LC","Weight"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="LC","Weight"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="ME","Weight"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="ME","Weight"], na.rm=TRUE)
-
-
-median(HLM_data[HLM_data$Session=="LC","Steps"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="LC","Steps"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="ME","Steps"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="ME","Steps"], na.rm=TRUE)
-
-
-median(HLM_data[HLM_data$Session=="LC","Sx_duration"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="LC","Sx_duration"], na.rm=TRUE)
-median(HLM_data[HLM_data$Session=="ME","Sx_duration"],na.rm=TRUE);quantile(HLM_data[HLM_data$Session=="ME","Sx_duration"], na.rm=TRUE)
-
-
-length(HLM_data[HLM_data$Session=="HDT55" & HLM_data$Sex=="Female","Age"])#/length(HLM_data[HLM_data$Session=="HDT55","Age"])
-length(HLM_data[HLM_data$Session=="LC" & HLM_data$Sex=="Female","Age"])#/length(HLM_data[HLM_data$Session=="LC","Age"])
-length(HLM_data[HLM_data$Session=="ME" & HLM_data$Sex=="Female","Age"])#/length(HLM_data[HLM_data$Session=="ME","Age"])
 
 HLM_test<-as.data.frame(box_cox_transform(HLM_data))
 HLM_test[,c("Subject","Session","Group", "Sex")]<-HLM_data[,c("Subject","Session","Group","Sex")]
 
-remove<-HLM_test[is.na(HLM_test$Age)==TRUE,"Subject"]
+remove<-HLM_test[is.na(HLM_test$Sex)==TRUE,"Subject"]
 test2<-HLM_test[!HLM_test$Subject %in% remove, ]
 
-# qqnorm(test2[test2$Session=="ME","Age"]);qqline(test2[test2$Session=="ME","Age"]) 
-# qqnorm(test2[test2$Session=="ME","Height"]);qqline(test2[test2$Session=="ME","Height"]) 
-# qqnorm(test2[test2$Session=="ME","Weight"]);qqline(test2[test2$Session=="ME","Weight"]) 
+ 
 # qqnorm(test2[test2$Session=="ME","Sx_duration"]);qqline(test2[test2$Session=="ME","Sx_duration"]) 
 # qqnorm(test2[test2$Session=="ME","Steps"]);qqline(test2[test2$Session=="ME","Steps"]) 
 
-kruskal.test(Age~Session, test2)
-kruskal.test(Weight~Session, test2)
-kruskal.test(Height~Session, test2)
+
 wilcox.test(Sx_duration~Session, test2[test2$Session!="HDT55",])
 wilcox.test(Steps~Session, test2[test2$Session!="HDT55",])
 
@@ -6380,14 +6285,10 @@ HLM_test2<-HLM_test[!HLM_test$Subject %in% remove,]
 # qqnorm(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="LC","VO2_perc_pred"])
 # qqnorm(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"]);qqline(HLM_test2[HLM_test2$Session=="ME","VO2_perc_pred"])
 
-model<-lme(VO2_perc_pred~Session, data=HLM_test2, random = ~ 1|Subject, na.action = na.omit, control="optim")
-# model<-lm(VO2_perc_pred~Session, data=HLM_test2[HLM_test2$Group=="POST-VIRAL" ,])
-a<-Anova(model)
-
 a<-
   kruskal.test(VO2_perc_pred~Session, data=HLM_test2)
 
-HLM_pvals["ANOVA","VO2_perc_pred"]<-a$`Pr(>F)`[1]
+HLM_pvals["ANOVA","VO2_perc_pred"]<-a$p.value
 a<-
   HLM_test2 %>% tukey_hsd(VO2_perc_pred~Session)
 
