@@ -269,7 +269,7 @@ normality_test_resid<-function (input){
 }
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_anonymized_030726_clean.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Main"))
 
 
 data<-data %>%
@@ -2616,7 +2616,7 @@ ggsave(plot=Pos_PEM,
 
 # Symptom Reports long COVID ---------------------------------
 
-Sx_data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Sx_percentages"))
+Sx_data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Sx_percentages"))
 
 LC_sx<-Sx_data[Sx_data$Session=="LC",]
 
@@ -7221,7 +7221,7 @@ ggsave(plot=Lactate_supp,
 # Fibre type proportions by area occuppied ---------------------------------------------------
 
 #initial group tests
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7239,7 +7239,7 @@ Anova(model)
 
 # Stats -------------------------------------------------------------------
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7459,7 +7459,7 @@ stat_test <- tibble::tribble(
   "CON","ME","p<0.001","POST-VIRAL",4  , 75, 3.75, 4.25, 0.01, 0.5,  14, 6,"black",
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 60, 3.75, 4, 0.01, 0.5,  14, 6,"black")
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7599,7 +7599,7 @@ ggsave(plot=fibre_type_b,
 # fibre type FCSA ---------------------------------------------------------
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7795,7 +7795,7 @@ stat_test_b <- tibble::tribble(
   "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","TypeI_FCSA"]),3), drop0trailing=F)),"POST-VIRAL",1  , 8000, 1.0, 1.25,0.01, 0.01, 30, 10, "black")
 
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Fig2a"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Fig2a"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7940,7 +7940,7 @@ ggsave(plot=fibre_type_FCSA_b,
 # Fibre type proportions by numerical value ---------------------------------------------------
 
 #initial group tests
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="SuppFig7"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="SuppFig7"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -7956,7 +7956,7 @@ Anova(model)
 
 # Stats -------------------------------------------------------------------
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="Main"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="Main"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
@@ -8178,7 +8178,7 @@ stat_test <- tibble::tribble(
   "CON","LC",paste(format(round(as.numeric(all_pvals["CON-LC","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 70, 3.75, 4, 0.01, 0.5,  14, 6,"black",
   "LC","ME",paste(format(round(as.numeric(all_pvals["LC-ME","FT_Percent_IIa_IIx_IIx"]),3), drop0trailing=F)),"POST-VIRAL",4  , 55, 4, 4.25, 0.01, 0.5,  14, 6,"black")
 
-data<-as.data.frame(read_xlsx("Manuscript_data_clean_110626.xlsx", sheet="SuppFig7"))
+data<-as.data.frame(read_xlsx("Charlton_source_data_2026.xlsx", sheet="SuppFig7"))
 
 data<-data %>%
   mutate(Group=dplyr::recode(Group, "AGBRESA"="BED REST","MUSCLE-ME"="POST-VIRAL"))
